@@ -1,0 +1,21 @@
+const path = require("node:path");
+const dotenv = require("dotenv");
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required env var: ${name}`);
+  return value;
+}
+
+const env = {
+  nodeEnv: process.env.NODE_ENV || "development",
+  port: Number(process.env.SERVER_PORT || 5000),
+  mongoUri: required("MONGO_URI"),
+  jwtSecret: required("JWT_SECRET"),
+  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173"
+};
+
+module.exports = { env };
+

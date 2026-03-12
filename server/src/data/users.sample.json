@@ -1,0 +1,12 @@
+[
+  {
+    "email": "admin@gym.local",
+    "role": "admin",
+    "note": "Use server/scripts/seed.js to create this user with a real password hash."
+  },
+  {
+    "email": "member@gym.local",
+    "role": "member",
+    "note": "Use server/scripts/seed.js to create this user with a real password hash."
+  }
+]

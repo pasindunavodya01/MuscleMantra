@@ -1,0 +1,23 @@
+[
+    {
+      "id": "p1",
+      "name": "Sample Product 1",
+      "description": "A sample product for development and testing.",
+      "price": 19.99,
+      "currency": "USD",
+      "inStock": true,
+      "tags": ["sample", "test"],
+      "createdAt": "2024-01-05T09:00:00.000Z"
+    },
+    {
+      "id": "p2",
+      "name": "Sample Product 2",
+      "description": "Another example product record.",
+      "price": 49.99,
+      "currency": "USD",
+      "inStock": false,
+      "tags": ["demo"],
+      "createdAt": "2024-01-06T15:45:00.000Z"
+    }
+  ]
+  

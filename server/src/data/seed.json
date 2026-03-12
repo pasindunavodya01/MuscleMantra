@@ -1,0 +1,67 @@
+{
+  "users": [
+    {
+      "name": "Gym Admin",
+      "email": "admin@musclemantra.com",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "name": "John Member",
+      "email": "member@musclemantra.com",
+      "password": "member123",
+      "role": "member",
+      "member": {
+        "memberCode": "GM-0001",
+        "phone": "+94-767-933-556",
+        "plan": "standard",
+        "status": "active",
+        "joinDate": "2025-01-01T00:00:00.000Z",
+        "expiryDate": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "name": "Sarah Johnson",
+      "email": "sarah@example.com",
+      "password": "member123",
+      "role": "member",
+      "member": {
+        "memberCode": "GM-0002",
+        "phone": "+94-771-234-567",
+        "plan": "premium",
+        "status": "active",
+        "joinDate": "2025-02-15T00:00:00.000Z",
+        "expiryDate": "2026-02-15T00:00:00.000Z"
+      }
+    },
+    {
+      "name": "Mike Wilson",
+      "email": "mike@example.com",
+      "password": "member123",
+      "role": "member",
+      "member": {
+        "memberCode": "GM-0003",
+        "phone": "+94-772-345-678",
+        "plan": "basic",
+        "status": "paused",
+        "joinDate": "2024-12-01T00:00:00.000Z",
+        "expiryDate": "2025-12-01T00:00:00.000Z"
+      }
+    },
+    {
+      "name": "Emma Davis",
+      "email": "emma@example.com",
+      "password": "member123",
+      "role": "member",
+      "member": {
+        "memberCode": "GM-0004",
+        "phone": "+94-773-456-789",
+        "plan": "standard",
+        "status": "active",
+        "joinDate": "2025-03-01T00:00:00.000Z",
+        "expiryDate": "2026-03-01T00:00:00.000Z"
+      }
+    }
+  ]
+}
+
