@@ -23,20 +23,20 @@ router.get("/qrcode/scan", async (req, res, next) => {
   try {
     const { code } = req.query;
     
-    if (!code) {
-      return res.status(400).json({ message: "QR code is required" });
+    if (!code || !code.trim()) {
+      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=Invalid%20QR%20code`);
     }
     
     // Validate the QR code exists and is active
-    const validQRCode = await req.app.locals.repo.validateQRCode(code);
+    const validQRCode = await req.app.locals.repo.validateQRCode(code.trim());
     if (!validQRCode) {
       // Redirect to an error page if invalid
-      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=Invalid%20QR%20code`);
+      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=Invalid%20or%20inactive%20QR%20code`);
     }
     
     // Redirect to member dashboard or login with the code
     // If user is not logged in, they'll be redirected to login with the code preserved
-    const redirectUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/member?code=${code}`;
+    const redirectUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/member?code=${encodeURIComponent(code.trim())}`;
     return res.redirect(redirectUrl);
   } catch (err) {
     next(err);

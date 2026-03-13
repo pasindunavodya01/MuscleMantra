@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -41,8 +41,9 @@ export default function App() {
 
 function DashboardRedirect() {
   const { isBooting, isAuthenticated, user } = useAuth();
+  const location = useLocation();
   if (isBooting) return <div className="container">Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <Navigate to={user?.role === "admin" ? "/admin" : "/member"} replace />;
+  if (!isAuthenticated) return <Navigate to={`/login${location.search}`} replace />;
+  return <Navigate to={`${user?.role === "admin" ? "/admin" : "/member"}${location.search}`} replace />;
 }
 

@@ -129,6 +129,13 @@ function createMongoRepo() {
     async getAttendanceByUserIdAndDate(userId, date) {
       return await Attendance.findOne({ userId, date });
     },
+    async updateAttendanceCheckOut(attendanceId, checkOutTime) {
+      return await Attendance.findByIdAndUpdate(
+        attendanceId,
+        { checkOutTime },
+        { new: true }
+      );
+    },
     
     // BMI Management
     async getAllBMI() {

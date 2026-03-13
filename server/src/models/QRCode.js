@@ -12,4 +12,9 @@ const QRCodeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index for faster lookups of active codes
+QRCodeSchema.index({ code: 1, isActive: 1 });
+// Index for finding active codes quickly
+QRCodeSchema.index({ isActive: 1, createdAt: -1 });
+
 module.exports = mongoose.model("QRCode", QRCodeSchema);

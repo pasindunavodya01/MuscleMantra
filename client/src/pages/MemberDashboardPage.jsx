@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
@@ -387,16 +387,11 @@ export default function MemberDashboardPage() {
     if (code) {
       setQrCodeFromScan(code);
       setActiveTab("attendance");
-      // Store code in sessionStorage so it persists during navigation
+      // Flag this as a fresh QR code that hasn't been used
       sessionStorage.setItem("qrCodeFromScan", code);
+      sessionStorage.setItem("qrCodeUsed", "false");
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      // Check if code was stored in sessionStorage from previous navigation
-      const storedCode = sessionStorage.getItem("qrCodeFromScan");
-      if (storedCode) {
-        setQrCodeFromScan(storedCode);
-      }
     }
   }, []);
 
@@ -725,22 +720,30 @@ function PaymentsTab({ setError, setSuccess }) {
 function AttendanceTab({ setError, setSuccess, initialQrCode = "", onQrUsed }) {
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [qrCode, setQrCode] = useState(initialQrCode);
+  const [qrCode, setQrCode] = useState("");
   const [checking, setChecking] = useState(false);
   const [currentQRInfo, setCurrentQRInfo] = useState(null);
+  const hasAutoCheckedIn = useRef(false);
+  const qrCodeRef = useRef(initialQrCode);
 
   useEffect(() => {
     loadAttendance();
     loadCurrentQRCode();
   }, []);
 
+  // Handle auto-check-in from QR scan, but only once per fresh QR code
   useEffect(() => {
-    // If we have an initial QR code from scan, auto-submit it
-    if (initialQrCode && !checking) {
-      setQrCode(initialQrCode);
-      handleCheckInWithCode(initialQrCode);
+    if (initialQrCode && !checking && !hasAutoCheckedIn.current) {
+      const qrUsed = sessionStorage.getItem("qrCodeUsed");
+      // Only auto-submit if this is a fresh QR code (not previously used)
+      if (qrUsed !== "true") {
+        hasAutoCheckedIn.current = true;
+        sessionStorage.setItem("qrCodeUsed", "true");
+        qrCodeRef.current = initialQrCode;
+        handleCheckInWithCode(initialQrCode);
+      }
     }
-  }, [initialQrCode, checking]);
+  }, []);
 
   const loadAttendance = async () => {
     try {
@@ -770,18 +773,31 @@ function AttendanceTab({ setError, setSuccess, initialQrCode = "", onQrUsed }) {
   };
 
   const handleCheckInWithCode = async (code) => {
+    // Prevent empty submissions
+    if (!code || !code.trim()) {
+      setError("Please provide a QR code");
+      return;
+    }
+
     setChecking(true);
     setError("");
     setSuccess("");
     
     try {
-      const res = await api.post("/member/attendance/checkin", { qrCode: code });
+      const res = await api.post("/member/attendance/checkin", { qrCode: code.trim() });
       setSuccess(res.data.message);
-      setQrCode("");
+      setQrCode(""); // Clear the input immediately
+      qrCodeRef.current = ""; // Clear the ref as well
+      
+      // Clear sessionStorage after successful check-in
+      sessionStorage.removeItem("qrCodeFromScan");
+      sessionStorage.removeItem("qrCodeUsed");
+      
       if (onQrUsed) onQrUsed();
       loadAttendance();
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to check in");
+      // Don't clear the input on error so user can retry
     } finally {
       setChecking(false);
     }
@@ -841,16 +857,24 @@ function AttendanceTab({ setError, setSuccess, initialQrCode = "", onQrUsed }) {
                   <th>Date</th>
                   <th>Check In</th>
                   <th>Check Out</th>
+                  <th>Duration</th>
                 </tr>
               </thead>
               <tbody>
-                {attendance.map((record) => (
-                  <tr key={record._id}>
-                    <td>{record.date}</td>
-                    <td>{formatTime(record.checkInTime)}</td>
-                    <td>{record.checkOutTime ? formatTime(record.checkOutTime) : "-"}</td>
-                  </tr>
-                ))}
+                {attendance.map((record) => {
+                  const checkIn = new Date(record.checkInTime);
+                  const checkOut = record.checkOutTime ? new Date(record.checkOutTime) : null;
+                  const duration = checkOut ? Math.round((checkOut - checkIn) / (1000 * 60)) : null;
+                  
+                  return (
+                    <tr key={record._id}>
+                      <td>{record.date}</td>
+                      <td>{formatTime(record.checkInTime)}</td>
+                      <td>{record.checkOutTime ? formatTime(record.checkOutTime) : "-"}</td>
+                      <td>{duration ? `${Math.floor(duration / 60)}h ${duration % 60}m` : "-"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

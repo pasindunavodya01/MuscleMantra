@@ -10,4 +10,9 @@ const AttendanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Create compound index for faster queries on userId + date
+AttendanceSchema.index({ userId: 1, date: 1 });
+// Also index for finding all records of a user sorted by date
+AttendanceSchema.index({ userId: 1, checkInTime: -1 });
+
 module.exports = mongoose.model("Attendance", AttendanceSchema);

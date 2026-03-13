@@ -68,8 +68,12 @@ async function checkInAttendance(req, res, next) {
   try {
     const { qrCode } = req.body;
     
+    if (!qrCode || !qrCode.trim()) {
+      return res.status(400).json({ message: "QR code is required" });
+    }
+
     // Validate QR code exists and is active
-    const validQRCode = await req.app.locals.repo.validateQRCode(qrCode);
+    const validQRCode = await req.app.locals.repo.validateQRCode(qrCode.trim());
     if (!validQRCode) {
       return res.status(400).json({ message: "Invalid or inactive QR code" });
     }
@@ -78,20 +82,47 @@ async function checkInAttendance(req, res, next) {
     
     // Check if already checked in today
     const existingAttendance = await req.app.locals.repo.getAttendanceByUserIdAndDate(req.user.id, today);
+    
     if (existingAttendance) {
-      return res.status(400).json({ message: "Already checked in today" });
+      // Check if user has already checked in with a QR code today
+      if (!existingAttendance.checkOutTime) {
+        // User is currently checked in - allow check-out
+        const updatedAttendance = await req.app.locals.repo.updateAttendanceCheckOut(
+          existingAttendance._id,
+          new Date()
+        );
+        
+        // Add user to QR code scan history only for check-out
+        await req.app.locals.repo.addUserToQRCodeScan(validQRCode.id, req.user.id);
+        
+        return res.json({ 
+          attendance: updatedAttendance, 
+          message: "Check-out successful",
+          status: "checkout"
+        });
+      } else {
+        // Already checked in and checked out today
+        return res.status(400).json({ 
+          message: "You have already checked in and checked out today. Please try again tomorrow." 
+        });
+      }
     }
     
+    // Create new check-in
     const attendance = await req.app.locals.repo.createAttendance({
       userId: req.user.id,
       checkInTime: new Date(),
       date: today
     });
     
-    // Add user to QR code scan history
+    // Add user to QR code scan history for check-in
     await req.app.locals.repo.addUserToQRCodeScan(validQRCode.id, req.user.id);
     
-    return res.json({ attendance, message: "Check-in successful" });
+    return res.json({ 
+      attendance, 
+      message: "Check-in successful",
+      status: "checkin"
+    });
   } catch (err) {
     next(err);
   }
