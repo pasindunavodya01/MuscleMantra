@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
+import { StripePaymentWrapper, StripeCheckoutButton } from "../components/StripePayment";
 
 const PRIMARY = "#ff5722";
 const SECONDARY = "#212121";
@@ -370,19 +371,39 @@ const styles = `
 `;
 
 export default function MemberDashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isBooting } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [membership, setMembership] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [qrCodeFromScan, setQrCodeFromScan] = useState("");
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [paymentsReloadTrigger, setPaymentsReloadTrigger] = useState(0);
 
   useEffect(() => {
     loadMembership();
+    setPaymentVerified(false);
+  }, []);
+
+  useEffect(() => {
+    if (isBooting) return; // Wait for user to load
+    if (paymentVerified) return; // Already verified in this session
+    
+    // Check for Stripe payment redirect
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+    const sessionId = params.get("session");
+    
+    if (paymentStatus === "success" && sessionId) {
+      // Verify and save Stripe payment to database
+      verifyStripePayment(sessionId);
+      setPaymentVerified(true);
+      setActiveTab("payments");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     
     // Check if QR code was passed from external scanner
-    const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if (code) {
       setQrCodeFromScan(code);
@@ -393,7 +414,7 @@ export default function MemberDashboardPage() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [isBooting, paymentVerified]);
 
   const loadMembership = async () => {
     try {
@@ -401,6 +422,24 @@ export default function MemberDashboardPage() {
       setMembership(res.data.membership);
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to load membership");
+    }
+  };
+
+  const verifyStripePayment = async (sessionId) => {
+    try {
+      // Call verify endpoint to save payment to database
+      const response = await api.post("/stripe/payment/verify", {
+        sessionId: sessionId
+      });
+      
+      if (response.data.success) {
+        setSuccess("Payment verified and saved successfully! 💳");
+        // Trigger PaymentsTab to reload
+        setPaymentsReloadTrigger(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Payment verification failed:", err);
+      setError(err?.response?.data?.message || "Failed to verify payment");
     }
   };
 
@@ -488,6 +527,7 @@ export default function MemberDashboardPage() {
                 <PaymentsTab 
                   setError={setError}
                   setSuccess={setSuccess}
+                  reloadTrigger={paymentsReloadTrigger}
                 />
               )}
               {activeTab === "attendance" && (
@@ -583,17 +623,18 @@ function DetailsTab({ membership, onUpdate, setError, setSuccess }) {
   );
 }
 
-function PaymentsTab({ setError, setSuccess }) {
+function PaymentsTab({ setError, setSuccess, reloadTrigger }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     loadPayments();
-  }, []);
+  }, [reloadTrigger]);
 
   const loadPayments = async () => {
     try {
@@ -608,6 +649,12 @@ function PaymentsTab({ setError, setSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Don't submit form if using Stripe through the button component
+    if (paymentMethod === "stripe") {
+      return;
+    }
+    
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -658,6 +705,7 @@ function PaymentsTab({ setError, setSuccess }) {
               <option value="card">Card</option>
               <option value="bank_transfer">Bank Transfer</option>
               <option value="cash">Cash</option>
+              <option value="stripe">Stripe</option>
             </select>
           </div>
           <div className="form-group">
@@ -670,9 +718,32 @@ function PaymentsTab({ setError, setSuccess }) {
               placeholder="Enter description"
             />
           </div>
-          <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit Payment"}
+          <button type="submit" className="btn-primary" disabled={submitting || paymentMethod === "stripe" && (!amount || amount <= 0)}>
+            {submitting ? "Submitting..." : paymentMethod === "stripe" ? "Pay with Stripe" : "Submit Payment"}
           </button>
+          {paymentMethod === "stripe" && amount && parseFloat(amount) > 0 && (
+            <div style={{ marginTop: "16px" }}>
+              <p style={{ color: "#bdbdbd", fontSize: "0.9rem" }}>
+                Or use Stripe directly:
+              </p>
+              <StripePaymentWrapper>
+                <StripeCheckoutButton
+                  userId={user?.id}
+                  amount={parseFloat(amount) || 0}
+                  description={description || "Gym membership payment"}
+                  membershipType="membership"
+                  onSuccess={() => {
+                    setSuccess("Payment processed successfully!");
+                    setAmount("");
+                    setDescription("");
+                    loadPayments();
+                  }}
+                  onError={(err) => setError(err)}
+                  variant="primary"
+                />
+              </StripePaymentWrapper>
+            </div>
+          )}
         </form>
       </div>
 

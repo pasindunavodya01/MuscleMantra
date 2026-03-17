@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
+import { StripePaymentWrapper, StripeCheckoutButton } from "../components/StripePayment";
 
 const PRIMARY = "#ff5722";
 const SECONDARY = "#212121";
@@ -506,6 +507,15 @@ function PaymentsTab({ payments, users, onRefresh }) {
 }
 
 function PaymentModal({ formData, setFormData, onSubmit, onClose, users }) {
+  const [stripeSuccess, setStripeSuccess] = useState(false);
+
+  const handleStripeSuccess = () => {
+    setStripeSuccess(true);
+    setTimeout(() => {
+      onClose();
+    }, 2000);
+  };
+
   return (
     <div className="admin-modal-overlay" onClick={onClose}>
       <div className="admin-modal" onClick={e => e.stopPropagation()}>
@@ -513,87 +523,108 @@ function PaymentModal({ formData, setFormData, onSubmit, onClose, users }) {
           <h3>Add Payment</h3>
           <button className="admin-modal-close" onClick={onClose}>&times;</button>
         </div>
-        <form onSubmit={onSubmit} className="admin-form">
-          <div className="admin-form-group">
-            <label>User</label>
-            <select
-              value={formData.userId}
-              onChange={e => setFormData({ ...formData, userId: e.target.value })}
-              required
-            >
-              <option value="">Select User</option>
-              {users.filter(u => u.role === "member").map(user => (
-                <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
-              ))}
-            </select>
+        {stripeSuccess ? (
+          <div className="admin-alert-success">
+            <i className="fas fa-check-circle"></i> Payment processed successfully!
           </div>
-
-          <div className="admin-form-row">
+        ) : (
+          <form onSubmit={onSubmit} className="admin-form">
             <div className="admin-form-group">
-              <label>Amount (Rs.)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                required
-              />
-            </div>
-            <div className="admin-form-group">
-              <label>Payment Date</label>
-              <input
-                type="date"
-                value={formData.paymentDate}
-                onChange={e => setFormData({ ...formData, paymentDate: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="admin-form-row">
-            <div className="admin-form-group">
-              <label>Payment Method</label>
+              <label>User</label>
               <select
-                value={formData.paymentMethod}
-                onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
+                value={formData.userId}
+                onChange={e => setFormData({ ...formData, userId: e.target.value })}
+                required
               >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="online">Online</option>
+                <option value="">Select User</option>
+                {users.filter(u => u.role === "member").map(user => (
+                  <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                ))}
               </select>
             </div>
-            <div className="admin-form-group">
-              <label>Status</label>
-              <select
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="failed">Failed</option>
-              </select>
+
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label>Amount (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="admin-form-group">
+                <label>Payment Date</label>
+                <input
+                  type="date"
+                  value={formData.paymentDate}
+                  onChange={e => setFormData({ ...formData, paymentDate: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="admin-form-group">
-            <label>Description</label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              rows="3"
-            />
-          </div>
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label>Payment Method</label>
+                <select
+                  value={formData.paymentMethod}
+                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="stripe">Stripe</option>
+                </select>
+              </div>
+              <div className="admin-form-group">
+                <label>Status</label>
+                <select
+                  value={formData.status}
+                  onChange={e => setFormData({ ...formData, status: e.target.value })}
+                  disabled={formData.paymentMethod === "stripe"}
+                >
+                  <option value="completed">Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
 
-          <div className="admin-form-actions">
-            <button type="button" className="admin-btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="admin-btn-primary">
-              Create Payment
-            </button>
-          </div>
-        </form>
+            <div className="admin-form-group">
+              <label>Description</label>
+              <textarea
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                rows="3"
+              />
+            </div>
+
+            <div className="admin-form-actions">
+              <button type="button" className="admin-btn-secondary" onClick={onClose}>
+                Cancel
+              </button>
+              {formData.paymentMethod === "stripe" && formData.userId && formData.amount ? (
+                <StripePaymentWrapper>
+                  <StripeCheckoutButton
+                    userId={formData.userId}
+                    amount={parseFloat(formData.amount)}
+                    description={formData.description || "Gym membership payment"}
+                    membershipType="membership"
+                    onSuccess={handleStripeSuccess}
+                    onError={(err) => alert(err)}
+                    variant="primary"
+                  />
+                </StripePaymentWrapper>
+              ) : (
+                <button type="submit" className="admin-btn-primary">
+                  Create Payment
+                </button>
+              )}
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -1591,6 +1622,84 @@ function AdminStyles() {
         .admin-table td {
           padding: 10px 8px;
         }
+      }
+
+      /* Stripe Payment Styles */
+      .admin-alert-success {
+        background: rgba(76,175,80,0.1);
+        border: 1px solid rgba(76,175,80,0.3);
+        color: #81c784;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        text-align: center;
+        font-weight: 600;
+      }
+
+      .stripe-btn {
+        background: ${PRIMARY};
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.3s;
+        font-family: 'Roboto', sans-serif;
+        width: 100%;
+      }
+
+      .stripe-btn:hover:not(:disabled) {
+        background: #e64a19;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,87,34,0.4);
+      }
+
+      .stripe-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .stripe-btn-primary {
+        background: ${PRIMARY};
+      }
+
+      .stripe-card-form {
+        padding: 16px 0;
+      }
+
+      .stripe-card-element {
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+        padding: 12px;
+        background: #1a1a1a;
+        margin-bottom: 16px;
+      }
+
+      .stripe-error {
+        color: #ff8a80;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+      }
+
+      .stripe-receipt {
+        margin-top: 16px;
+        padding: 12px;
+        background: rgba(76,175,80,0.1);
+        border: 1px solid rgba(76,175,80,0.3);
+        border-radius: 6px;
+        color: #81c784;
+      }
+
+      .stripe-receipt-link {
+        color: #81c784;
+        text-decoration: underline;
+        font-weight: 600;
+      }
+
+      .stripe-receipt-link:hover {
+        color: #a5d6a7;
       }
     `}</style>
   );

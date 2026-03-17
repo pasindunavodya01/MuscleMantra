@@ -110,6 +110,17 @@ function createMongoRepo() {
     async getPaymentsByUserId(userId) {
       return await Payment.find({ userId }).sort({ paymentDate: -1 });
     },
+    async updatePaymentStatus(query, updateData) {
+      return await Payment.findOneAndUpdate(query, updateData, { new: true });
+    },
+    async getPaymentByStripeId(stripeSessionId, stripePaymentIntentId) {
+      if (stripeSessionId) {
+        return await Payment.findOne({ stripeSessionId, status: "completed" });
+      } else if (stripePaymentIntentId) {
+        return await Payment.findOne({ stripePaymentIntentId, status: "completed" });
+      }
+      return null;
+    },
     
     // Attendance Management
     async getAllAttendance(date) {

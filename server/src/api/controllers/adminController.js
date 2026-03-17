@@ -83,107 +83,143 @@ async function deleteUser(req, res, next) {
 }
 
 // Payment Management
-async function getAllPayments(req, res) {
-  const payments = await req.app.locals.repo.getAllPayments();
-  return res.json({ payments });
-}
-
-async function createPayment(req, res) {
-  const { userId, amount, paymentDate, paymentMethod, description, status } = req.body;
-  
-  if (!userId || !amount) {
-    return res.status(400).json({ message: "Missing required fields" });
+async function getAllPayments(req, res, next) {
+  try {
+    const payments = await req.app.locals.repo.getAllPayments();
+    return res.json({ payments });
+  } catch (err) {
+    next(err);
   }
-  
-  const payment = await req.app.locals.repo.createPayment({
-    userId,
-    amount,
-    paymentDate: paymentDate || new Date(),
-    paymentMethod: paymentMethod || "cash",
-    description: description || "",
-    status: status || "completed"
-  });
-  
-  return res.json({ payment });
 }
 
-async function getUserPayments(req, res) {
-  const { userId } = req.params;
-  const payments = await req.app.locals.repo.getPaymentsByUserId(userId);
-  return res.json({ payments });
+async function createPayment(req, res, next) {
+  try {
+    const { userId, amount, paymentDate, paymentMethod, description, status } = req.body;
+    
+    if (!userId || !amount) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    
+    const payment = await req.app.locals.repo.createPayment({
+      userId,
+      amount,
+      paymentDate: paymentDate || new Date(),
+      paymentMethod: paymentMethod || "cash",
+      description: description || "",
+      status: status || "completed"
+    });
+    
+    return res.json({ payment });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getUserPayments(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const payments = await req.app.locals.repo.getPaymentsByUserId(userId);
+    return res.json({ payments });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // Attendance Management
-async function getAllAttendance(req, res) {
-  const { date } = req.query;
-  const attendance = await req.app.locals.repo.getAllAttendance(date);
-  return res.json({ attendance });
-}
-
-async function createAttendance(req, res) {
-  const { userId, checkInTime, checkOutTime, date } = req.body;
-  
-  if (!userId || !date) {
-    return res.status(400).json({ message: "Missing required fields" });
+async function getAllAttendance(req, res, next) {
+  try {
+    const { date } = req.query;
+    const attendance = await req.app.locals.repo.getAllAttendance(date);
+    return res.json({ attendance });
+  } catch (err) {
+    next(err);
   }
-  
-  const attendance = await req.app.locals.repo.createAttendance({
-    userId,
-    checkInTime: checkInTime || new Date(),
-    checkOutTime,
-    date
-  });
-  
-  return res.json({ attendance });
 }
 
-async function getUserAttendance(req, res) {
-  const { userId } = req.params;
-  const attendance = await req.app.locals.repo.getAttendanceByUserId(userId);
-  return res.json({ attendance });
+async function createAttendance(req, res, next) {
+  try {
+    const { userId, checkInTime, checkOutTime, date } = req.body;
+    
+    if (!userId || !date) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    
+    const attendance = await req.app.locals.repo.createAttendance({
+      userId,
+      checkInTime: checkInTime || new Date(),
+      checkOutTime,
+      date
+    });
+    
+    return res.json({ attendance });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getUserAttendance(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const attendance = await req.app.locals.repo.getAttendanceByUserId(userId);
+    return res.json({ attendance });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // BMI Management
-async function getAllBMI(req, res) {
-  const bmi = await req.app.locals.repo.getAllBMI();
-  return res.json({ bmi });
-}
-
-async function createBMI(req, res) {
-  const { userId, weight, height, recordDate, notes } = req.body;
-  
-  if (!userId || !weight || !height) {
-    return res.status(400).json({ message: "Missing required fields" });
+async function getAllBMI(req, res, next) {
+  try {
+    const bmi = await req.app.locals.repo.getAllBMI();
+    return res.json({ bmi });
+  } catch (err) {
+    next(err);
   }
-  
-  // Calculate BMI
-  const heightInMeters = height / 100;
-  const bmi = weight / (heightInMeters * heightInMeters);
-  
-  // Determine category
-  let category;
-  if (bmi < 18.5) category = "underweight";
-  else if (bmi < 25) category = "normal";
-  else if (bmi < 30) category = "overweight";
-  else category = "obese";
-  
-  const bmiRecord = await req.app.locals.repo.createBMI({
-    userId,
-    weight,
-    height,
-    bmi: parseFloat(bmi.toFixed(2)),
-    category,
-    recordDate: recordDate || new Date(),
-    notes: notes || ""
-  });
-  
-  return res.json({ bmi: bmiRecord });
 }
 
-async function getUserBMI(req, res) {
-  const { userId } = req.params;
-  const bmi = await req.app.locals.repo.getBMIByUserId(userId);
-  return res.json({ bmi });
+async function createBMI(req, res, next) {
+  try {
+    const { userId, weight, height, recordDate, notes } = req.body;
+    
+    if (!userId || !weight || !height) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    
+    // Calculate BMI
+    const heightInMeters = height / 100;
+    const bmi = weight / (heightInMeters * heightInMeters);
+    
+    // Determine category
+    let category;
+    if (bmi < 18.5) category = "underweight";
+    else if (bmi < 25) category = "normal";
+    else if (bmi < 30) category = "overweight";
+    else category = "obese";
+    
+    const bmiRecord = await req.app.locals.repo.createBMI({
+      userId,
+      weight,
+      height,
+      bmi: parseFloat(bmi.toFixed(2)),
+      category,
+      recordDate: recordDate || new Date(),
+      notes: notes || ""
+    });
+    
+    return res.json({ bmi: bmiRecord });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getUserBMI(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const bmi = await req.app.locals.repo.getBMIByUserId(userId);
+    return res.json({ bmi });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // QR Code Management

@@ -18,8 +18,14 @@ function createMemoryRepo() {
   const usersByEmail = new Map();
   const membershipByUserId = new Map();
   const qrCodesById = new Map();
+  const paymentsById = new Map();
+  const attendanceById = new Map();
+  const bmiById = new Map();
   let activeQRCode = null;
   const qrCodeHistory = [];
+  let paymentIdCounter = 1;
+  let attendanceIdCounter = 1;
+  let bmiIdCounter = 1;
 
   for (const u of seed.users || []) {
     const id = stableIdFromEmail(u.email);
@@ -120,6 +126,121 @@ function createMemoryRepo() {
     async getQRCodeHistory(limit = 10) {
       const allQRCodes = Array.from(qrCodesById.values());
       return allQRCodes.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+    },
+    // User Management
+    async getAllUsers() {
+      return Array.from(usersById.values()).map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role
+      }));
+    },
+    async createUser({ name, email, passwordHash, role }) {
+      const id = uuidv4();
+      const user = { id, name, email, passwordHash, role };
+      usersById.set(id, user);
+      usersByEmail.set(email.toLowerCase(), user);
+      return { id: user.id, name: user.name, email: user.email, role: user.role };
+    },
+    async updateUser(id, updateData) {
+      const user = usersById.get(id);
+      if (!user) return null;
+      
+      if (updateData.name) user.name = updateData.name;
+      if (updateData.email) {
+        usersByEmail.delete(user.email);
+        user.email = updateData.email;
+        usersByEmail.set(user.email, user);
+      }
+      if (updateData.role) user.role = updateData.role;
+      
+      return { id: user.id, name: user.name, email: user.email, role: user.role };
+    },
+    async deleteUser(id) {
+      const user = usersById.get(id);
+      if (user) {
+        usersById.delete(id);
+        usersByEmail.delete(user.email);
+        membershipByUserId.delete(id);
+      }
+    },
+    async createMember(memberData) {
+      const { userId, ...data } = memberData;
+      membershipByUserId.set(userId, {
+        memberCode: data.memberCode || uuidv4(),
+        phone: data.phone || "",
+        plan: data.plan || "basic",
+        status: data.status || "active",
+        joinDate: data.joinDate || new Date(),
+        expiryDate: data.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      });
+      return membershipByUserId.get(userId);
+    },
+    async updateMember(userId, memberData) {
+      const existing = membershipByUserId.get(userId) || {};
+      const updated = { ...existing, ...memberData };
+      membershipByUserId.set(userId, updated);
+      return updated;
+    },
+    // Payment Management
+    async getAllPayments() {
+      return Array.from(paymentsById.values());
+    },
+    async createPayment(paymentData) {
+      const id = String(paymentIdCounter++);
+      const payment = {
+        id,
+        ...paymentData,
+        createdAt: paymentData.paymentDate || new Date()
+      };
+      paymentsById.set(id, payment);
+      return payment;
+    },
+    async getPaymentsByUserId(userId) {
+      return Array.from(paymentsById.values()).filter(p => p.userId === userId);
+    },
+    // Attendance Management
+    async getAllAttendance(date) {
+      let records = Array.from(attendanceById.values());
+      if (date) {
+        records = records.filter(r => {
+          const recordDate = new Date(r.date).toDateString();
+          const filterDate = new Date(date).toDateString();
+          return recordDate === filterDate;
+        });
+      }
+      return records;
+    },
+    async createAttendance(attendanceData) {
+      const id = String(attendanceIdCounter++);
+      const record = {
+        id,
+        ...attendanceData,
+        createdAt: new Date()
+      };
+      attendanceById.set(id, record);
+      return record;
+    },
+    async getAttendanceByUserId(userId) {
+      return Array.from(attendanceById.values()).filter(a => a.userId === userId);
+    },
+    // BMI Management
+    async getAllBMI() {
+      return Array.from(bmiById.values());
+    },
+    async createBMI(bmiData) {
+      const id = String(bmiIdCounter++);
+      const record = {
+        id,
+        ...bmiData,
+        createdAt: new Date()
+      };
+      bmiById.set(id, record);
+      return record;
+    },
+    async getBMIByUserId(userId) {
+      return Array.from(bmiById.values()).filter(b => b.userId === userId);
     }
   };
 }
