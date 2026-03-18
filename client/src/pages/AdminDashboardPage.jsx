@@ -98,8 +98,9 @@ export default function AdminDashboardPage() {
           <div className="admin-tabs-container">
             {[
               { id: "overview", icon: "fa-chart-line", label: "Overview" },
+              { id: "pay-review", icon: "fa-file-invoice", label: "Payment Review" },
               { id: "users", icon: "fa-users", label: "Users" },
-              { id: "payments", icon: "fa-credit-card", label: "Payments" },
+              { id: "payments", icon: "fa-credit-card", label: "Payment History" },
               { id: "attendance", icon: "fa-calendar-check", label: "Attendance" },
               { id: "qrcode", icon: "fa-qrcode", label: "QR Code" },
               { id: "bmi", icon: "fa-weight", label: "BMI Tracking" },
@@ -124,6 +125,7 @@ export default function AdminDashboardPage() {
           ) : (
             <>
               {activeTab === "overview" && <OverviewTab stats={stats} />}
+              {activeTab === "pay-review" && <PaymentReviewTab onRefresh={loadData} />}
               {activeTab === "users" && <UsersTab users={users} onRefresh={loadData} />}
               {activeTab === "payments" && <PaymentsTab payments={payments} users={users} onRefresh={loadData} />}
               {activeTab === "attendance" && <AttendanceTab attendance={attendance} users={users} onRefresh={loadData} />}
@@ -438,6 +440,303 @@ function UserModal({ formData, setFormData, onSubmit, onClose, isEdit }) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// Payment Review Tab Component
+function PaymentReviewTab({ onRefresh }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [renewalStats, setRenewalStats] = useState(null);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [paymentsRes, statsRes] = await Promise.all([
+        api.get("/admin/payments/pending"),
+        api.get("/admin/stats/renewals")
+      ]);
+      setPayments(paymentsRes.data.payments || []);
+      setRenewalStats(statsRes.data.stats || {});
+    } catch (err) {
+      console.error("Failed to load payment data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReview = async (paymentId, status) => {
+    setProcessing(true);
+    try {
+      await api.put(`/admin/payments/${paymentId}/review`, {
+        reviewStatus: status,
+        reviewNotes
+      });
+      setSelectedPayment(null);
+      setReviewNotes("");
+      loadData();
+      onRefresh();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to review payment");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Renewal Statistics */}
+      {renewalStats && (
+        <div className="admin-section" style={{
+          background: "linear-gradient(135deg, rgba(76,175,80,0.1), rgba(118,255,3,0.05))",
+          border: "1px solid rgba(118,255,3,0.3)",
+          marginBottom: "24px"
+        }}>
+          <h2 className="admin-stat-title" style={{ color: "#76ff03", marginBottom: "16px" }}>
+            📊 Renewal Statistics
+          </h2>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "16px"
+          }}>
+            <RenewalStatCard 
+              icon="✅" 
+              label="Renewed This Month" 
+              value={renewalStats.renewedThisMonth || 0}
+              color="#4caf50"
+            />
+            <RenewalStatCard 
+              icon="⏳" 
+              label="Pending Review" 
+              value={payments.length}
+              color="#ff9800"
+            />
+            <RenewalStatCard 
+              icon="❌" 
+              label="Not Renewed" 
+              value={renewalStats.notRenewed || 0}
+              color="#f44336"
+            />
+            <RenewalStatCard 
+              icon="💰" 
+              label="Pending Amount" 
+              value={`Rs. ${(renewalStats.pendingAmount || 0).toFixed(2)}`}
+              color="#2196f3"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Pending Payments for Review */}
+      <div className="admin-section">
+        <div className="admin-section-header">
+          <h2>🔍 Pending Payment Reviews ({payments.length})</h2>
+          <button className="admin-btn-secondary" onClick={loadData}>
+            <i className="fas fa-sync" /> Refresh
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="admin-loading">Loading payments...</div>
+        ) : payments.length === 0 ? (
+          <div style={{
+            textAlign: "center",
+            padding: "40px 20px",
+            color: "#81c784"
+          }}>
+            <i className="fas fa-check-circle" style={{ fontSize: "2rem", marginBottom: "12px", display: "block" }}></i>
+            All payments have been reviewed!
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+            gap: "16px"
+          }}>
+            {payments.map(payment => (
+              <div key={payment._id} style={{
+                background: "#1a1a1a",
+                border: "1px solid #3a3a3a",
+                borderRadius: "12px",
+                padding: "20px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                borderLeft: "4px solid #ff5722",
+                position: "relative"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 8px 20px rgba(255,87,34,0.2)"}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
+              onClick={() => setSelectedPayment(payment)}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                  <div>
+                    <div style={{ color: "#bdbdbd", fontSize: "0.9rem" }}>Member</div>
+                    <div style={{ color: "#fff", fontWeight: "600" }}>
+                      {payment.userId?.name || "Unknown"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ color: "#bdbdbd", fontSize: "0.9rem" }}>Amount</div>
+                    <div style={{ color: "#76ff03", fontWeight: "600", fontSize: "1.2rem" }}>
+                      Rs. {payment.amount.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ color: "#9e9e9e", fontSize: "0.85rem", marginBottom: "12px" }}>
+                  <i className="fas fa-calendar" style={{ marginRight: "6px" }}></i>
+                  {new Date(payment.paymentDate).toLocaleDateString()}
+                  <span style={{ marginLeft: "12px" }}>
+                    <i className="fas fa-credit-card" style={{ marginRight: "6px" }}></i>
+                    {payment.paymentMethod}
+                  </span>
+                </div>
+
+                {payment.proofOfPayment && (
+                  <div style={{
+                    background: "rgba(76,175,80,0.1)",
+                    border: "1px solid rgba(76,175,80,0.3)",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    color: "#81c784",
+                    fontSize: "0.9rem",
+                    marginBottom: "12px"
+                  }}>
+                    <i className="fas fa-file-check"></i> Proof: {payment.proofOfPayment}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    className="admin-btn-primary"
+                    style={{ flex: 1, marginBottom: 0 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPayment(payment);
+                    }}
+                  >
+                    ✅ Review
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Review Modal */}
+      {selectedPayment && (
+        <div className="admin-modal-overlay" onClick={() => setSelectedPayment(null)}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Review Payment - {selectedPayment.userId?.name}</h3>
+              <button className="admin-modal-close" onClick={() => setSelectedPayment(null)}>&times;</button>
+            </div>
+            <div style={{ padding: "20px", color: "#bdbdbd" }}>
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ color: "#9e9e9e", fontSize: "0.9rem", marginBottom: "4px" }}>Amount</div>
+                <div style={{ color: "#76ff03", fontSize: "1.5rem", fontWeight: "600" }}>
+                  Rs. {selectedPayment.amount.toFixed(2)}
+                </div>
+              </div>
+
+              {selectedPayment.description && (
+                <div style={{ marginBottom: "20px" }}>
+                  <div style={{ color: "#9e9e9e", fontSize: "0.9rem", marginBottom: "4px" }}>Description</div>
+                  <div>{selectedPayment.description}</div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ color: "#9e9e9e", fontSize: "0.9rem", marginBottom: "4px" }}>Payment Method</div>
+                <div>{selectedPayment.paymentMethod}</div>
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ color: "#9e9e9e", fontSize: "0.9rem", display: "block", marginBottom: "8px" }}>
+                  Review Notes (Optional)
+                </label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Add notes about this payment review..."
+                  style={{
+                    width: "100%",
+                    background: "#0a0a0a",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "6px",
+                    color: "#fff",
+                    padding: "10px",
+                    fontFamily: "'Roboto', sans-serif",
+                    minHeight: "80px",
+                    resize: "vertical"
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  className="admin-btn-secondary"
+                  onClick={() => setSelectedPayment(null)}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  style={{
+                    flex: 1,
+                    background: "#f44336",
+                    color: "#fff",
+                    border: "none",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    transition: "all 0.3s"
+                  }}
+                  disabled={processing}
+                  onClick={() => handleReview(selectedPayment._id, "rejected")}
+                  onMouseEnter={(e) => e.target.style.background = "#d32f2f"}
+                  onMouseLeave={(e) => e.target.style.background = "#f44336"}
+                >
+                  ❌ Reject
+                </button>
+                <button
+                  className="admin-btn-primary"
+                  style={{ flex: 1 }}
+                  disabled={processing}
+                  onClick={() => handleReview(selectedPayment._id, "approved")}
+                >
+                  ✅ Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function RenewalStatCard({ icon, label, value, color }) {
+  return (
+    <div style={{
+      background: `${color}15`,
+      border: `1px solid ${color}30`,
+      borderRadius: "10px",
+      padding: "16px",
+      textAlign: "center"
+    }}>
+      <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{icon}</div>
+      <div style={{ color: "#9e9e9e", fontSize: "0.9rem", marginBottom: "4px" }}>{label}</div>
+      <div style={{ color: color, fontWeight: "600", fontSize: "1.3rem" }}>{value}</div>
     </div>
   );
 }

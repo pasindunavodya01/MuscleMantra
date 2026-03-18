@@ -8,6 +8,8 @@ const {
   getAllPayments,
   createPayment,
   getUserPayments,
+  getPendingPayments,
+  reviewPayment,
   getAllAttendance,
   createAttendance,
   getUserAttendance,
@@ -17,7 +19,8 @@ const {
   generateQRCode,
   getActiveQRCode,
   deactivateQRCode,
-  getQRCodeHistory
+  getQRCodeHistory,
+  getRenewalStats
 } = require("../controllers/adminController");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 
@@ -39,6 +42,11 @@ router.delete("/users/:id", deleteUser);
 router.get("/payments", getAllPayments);
 router.post("/payments", createPayment);
 router.get("/payments/user/:userId", getUserPayments);
+router.get("/payments/pending", getPendingPayments);
+router.put("/payments/:paymentId/review", reviewPayment);
+
+// Renewal Statistics
+router.get("/stats/renewals", getRenewalStats);
 
 // Attendance Management
 router.get("/attendance", getAllAttendance);

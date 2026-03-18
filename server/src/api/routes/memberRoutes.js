@@ -4,6 +4,7 @@ const {
   updateMyDetails,
   getMyPayments,
   createMyPayment,
+  uploadPaymentProof,
   getMyAttendance,
   checkInAttendance,
   getMyBMI,
@@ -23,6 +24,7 @@ router.put("/me", updateMyDetails);
 // Payments
 router.get("/payments", getMyPayments);
 router.post("/payments", createMyPayment);
+router.post("/payments/upload-proof/:paymentId", uploadPaymentProof);
 
 // Attendance
 router.get("/attendance", getMyAttendance);

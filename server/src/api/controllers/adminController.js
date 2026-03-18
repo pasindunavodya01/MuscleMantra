@@ -261,6 +261,58 @@ async function getQRCodeHistory(req, res, next) {
   }
 }
 
+// Payment Review Management
+async function getPendingPayments(req, res, next) {
+  try {
+    const payments = await req.app.locals.repo.getPendingPayments();
+    return res.json({ payments });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function reviewPayment(req, res, next) {
+  try {
+    const { paymentId } = req.params;
+    const { reviewStatus, reviewNotes } = req.body;
+
+    if (!reviewStatus || !["approved", "rejected"].includes(reviewStatus)) {
+      return res.status(400).json({ message: "Valid review status is required (approved/rejected)" });
+    }
+
+    const updateData = {
+      reviewStatus,
+      reviewNotes: reviewNotes || "",
+      reviewedBy: req.user.id,
+      reviewedAt: new Date(),
+      status: reviewStatus === "approved" ? "completed" : "rejected"
+    };
+
+    const payment = await req.app.locals.repo.updatePayment(paymentId, updateData);
+    
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    return res.json({ 
+      payment, 
+      message: `Payment ${reviewStatus} successfully` 
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Renewal Statistics
+async function getRenewalStats(req, res, next) {
+  try {
+    const stats = await req.app.locals.repo.getRenewalStats();
+    return res.json({ stats });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = { 
   overview, 
   getAllUsers, 
@@ -270,6 +322,8 @@ module.exports = {
   getAllPayments,
   createPayment,
   getUserPayments,
+  getPendingPayments,
+  reviewPayment,
   getAllAttendance,
   createAttendance,
   getUserAttendance,
@@ -279,6 +333,7 @@ module.exports = {
   generateQRCode,
   getActiveQRCode,
   deactivateQRCode,
-  getQRCodeHistory
+  getQRCodeHistory,
+  getRenewalStats
 };
 

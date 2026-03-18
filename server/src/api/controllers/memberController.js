@@ -35,7 +35,7 @@ async function getMyPayments(req, res, next) {
 
 async function createMyPayment(req, res, next) {
   try {
-    const { amount, paymentMethod, description } = req.body;
+    const { amount, paymentMethod, description, paymentType } = req.body;
     
     if (!amount) {
       return res.status(400).json({ message: "Amount is required" });
@@ -46,7 +46,9 @@ async function createMyPayment(req, res, next) {
       amount,
       paymentMethod: paymentMethod || "online",
       description: description || "",
-      status: "pending"
+      status: "pending",
+      reviewStatus: "pending_review",
+      paymentType: paymentType || "general"
     });
     
     return res.json({ payment });
@@ -172,11 +174,44 @@ async function createMyBMI(req, res, next) {
   }
 }
 
+async function uploadPaymentProof(req, res, next) {
+  try {
+    const { paymentId } = req.params;
+    const { proofBase64, fileName } = req.body;
+
+    if (!proofBase64) {
+      return res.status(400).json({ message: "Payment proof is required" });
+    }
+
+    // Create a simple proof reference (in production, you'd upload to cloud storage)
+    // For now, we'll store a reference with timestamp
+    const proofReference = `proof_${Date.now()}_${fileName || 'payment.pdf'}`;
+    
+    const payment = await req.app.locals.repo.updatePayment(paymentId, {
+      proofOfPayment: proofReference,
+      reviewStatus: "pending_review",
+      status: "pending"
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    return res.json({ 
+      payment,
+      message: "Payment proof uploaded successfully. Admin will review it shortly."
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   myMembership,
   updateMyDetails,
   getMyPayments,
   createMyPayment,
+  uploadPaymentProof,
   getMyAttendance,
   checkInAttendance,
   getMyBMI,

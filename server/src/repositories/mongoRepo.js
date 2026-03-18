@@ -205,6 +205,45 @@ function createMongoRepo() {
         .sort({ createdAt: -1 })
         .limit(limit)
         .populate("scannedBy", "name email");
+    },
+
+    // New Payment Methods
+    async updatePayment(paymentId, data) {
+      const payment = await Payment.findByIdAndUpdate(paymentId, data, { new: true }).populate("userId", "name email");
+      return payment;
+    },
+
+    async getPendingPayments() {
+      const payments = await Payment.find({ reviewStatus: "pending_review" })
+        .populate("userId", "name email")
+        .sort({ paymentDate: -1 });
+      return payments;
+    },
+
+    async getRenewalStats() {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      // Payments renewed this month (approved)
+      const renewedThisMonth = await Payment.countDocuments({
+        status: "completed",
+        paymentDate: { $gte: monthStart, $lte: monthEnd }
+      });
+
+      // Pending payment amounts
+      const pendingPayments = await Payment.find({ reviewStatus: "pending_review" });
+      const pendingAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+
+      // Members not renewed (expired members without recent payment)
+      const expiredMembers = await Member.countDocuments({ status: "expired" });
+
+      return {
+        renewedThisMonth,
+        pendingAmount,
+        notRenewed: expiredMembers,
+        totalPending: pendingPayments.length
+      };
     }
   };
 }

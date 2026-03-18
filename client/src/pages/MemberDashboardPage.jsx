@@ -1042,14 +1042,55 @@ function PaymentsTab({ setError, setSuccess, reloadTrigger }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("online");
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [description, setDescription] = useState("");
+  const [proofFile, setProofFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
     loadPayments();
   }, [reloadTrigger]);
+
+  // Handle Stripe payment redirect
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const paymentStatus = searchParams.get("payment");
+    const sessionId = searchParams.get("session");
+
+    if (paymentStatus === "success" && sessionId) {
+      // Verify payment with backend
+      const verifyStripePayment = async () => {
+        try {
+          const response = await api.post("/stripe/payment/verify", {
+            sessionId: sessionId
+          });
+
+          if (response.data.success) {
+            setSuccess("✅ Payment processed successfully with Stripe! Payment saved.");
+            setAmount("");
+            setDescription("");
+            setProofFile(null);
+            document.getElementById("proofInput").value = "";
+            loadPayments();
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (err) {
+          setError(err?.response?.data?.message || "Payment verification failed. Please contact admin.");
+          // Clean up URL even on error
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+
+      verifyStripePayment();
+    } else if (paymentStatus === "cancelled") {
+      setError("❌ Payment was cancelled. Please try again.");
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const loadPayments = async () => {
     try {
@@ -1062,39 +1103,122 @@ function PaymentsTab({ setError, setSuccess, reloadTrigger }) {
     }
   };
 
+  const handleFileChange = (e) => {
+    setProofFile(e.target.files[0]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Don't submit form if using Stripe through the button component
-    if (paymentMethod === "stripe") {
+    if (!proofFile && !amount) {
+      setError("Please upload payment proof or select Stripe payment");
       return;
     }
-    
+
     setSubmitting(true);
     setError("");
     setSuccess("");
     
     try {
-      await api.post("/member/payments", { 
-        amount: parseFloat(amount), 
-        paymentMethod,
-        description 
-      });
-      setSuccess("Payment submitted successfully");
-      setAmount("");
-      setDescription("");
-      loadPayments();
+      // For bank transfer or cash with proof
+      if (proofFile || (amount && ["bank_transfer", "cash"].includes(paymentMethod))) {
+        // Create payment record
+        const createRes = await api.post("/member/payments", { 
+          amount: parseFloat(amount) || 0, 
+          paymentMethod,
+          description,
+          paymentType: "membership_renewal"
+        });
+
+        const paymentId = createRes.data.payment._id;
+
+        // Upload proof if file provided
+        if (proofFile) {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            try {
+              await api.post(`/member/payments/upload-proof/${paymentId}`, {
+                proofBase64: event.target.result,
+                fileName: proofFile.name
+              });
+              setSuccess("✅ Payment recorded! Admin will review your proof shortly.");
+              setAmount("");
+              setDescription("");
+              setProofFile(null);
+              document.getElementById("proofInput").value = "";
+              loadPayments();
+            } catch (err) {
+              setError("Failed to upload proof. Please try again.");
+            } finally {
+              setSubmitting(false);
+            }
+          };
+          reader.readAsArrayBuffer(proofFile);
+        } else {
+          setSuccess("Payment recorded! Admin will verify it.");
+          setAmount("");
+          setDescription("");
+          setProofFile(null);
+          loadPayments();
+          setSubmitting(false);
+        }
+      }
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to submit payment");
-    } finally {
       setSubmitting(false);
     }
   };
 
+  const getStatusBadgeColor = (status, reviewStatus) => {
+    if (reviewStatus === "approved" || status === "completed") {
+      return "status-active";
+    } else if (reviewStatus === "rejected" || status === "rejected") {
+      return "status-expired";
+    } else {
+      return "status-paused";
+    }
+  };
+
+  const getStatusText = (payment) => {
+    if (payment.reviewStatus === "approved") return "✅ Approved";
+    if (payment.reviewStatus === "rejected") return "❌ Rejected";
+    if (payment.reviewStatus === "pending_review") return "⏳ Pending Review";
+    return payment.status || "Pending";
+  };
+
   return (
     <>
+      {/* Payment Instructions */}
+      <div className="member-section" style={{
+        background: "rgba(118,255,3,0.05)",
+        border: "1px solid rgba(118,255,3,0.3)"
+      }}>
+        <h2 className="section-title" style={{ marginBottom: "12px" }}>💰 Payment Options</h2>
+        <div style={{ color: "#bdbdbd", lineHeight: "1.8", fontSize: "0.95rem" }}>
+          <div style={{ marginBottom: "16px" }}>
+            <p style={{ color: "#76ff03", fontWeight: "600", marginBottom: "8px" }}>Option 1: Manual Payment (Bank Transfer/Cash)</p>
+            <p style={{ marginLeft: "16px", marginBottom: "0" }}>
+              <strong>1.</strong> Enter amount & description<br/>
+              <strong>2.</strong> Upload proof (screenshot/receipt)<br/>
+              <strong>3.</strong> Submit for admin review<br/>
+              <strong>4.</strong> Admin approves within 24 hours
+            </p>
+          </div>
+          <div>
+            <p style={{ color: "#64b5f6", fontWeight: "600", marginBottom: "8px" }}>Option 2: Stripe Payment (Instant)</p>
+            <p style={{ marginLeft: "16px", marginBottom: "0" }}>
+              <strong>1.</strong> Enter amount<br/>
+              <strong>2.</strong> Select Stripe from methods<br/>
+              <strong>3.</strong> Pay with credit/debit card<br/>
+              <strong>4.</strong> Instant confirmation
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Submit Payment */}
       <div className="member-section">
-        <h2 className="section-title">Make a Payment</h2>
+        <h2 className="section-title">💳 Submit Payment</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Amount (Rs.)</label>
@@ -1106,68 +1230,117 @@ function PaymentsTab({ setError, setSuccess, reloadTrigger }) {
               placeholder="Enter amount"
               required
               min="0"
-              step="0.01"
+              step="1"
             />
           </div>
+
           <div className="form-group">
-            <label className="form-label">Payment Method</label>
+            <label className="form-label">🛒 Payment Channel</label>
             <select
               className="form-input"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
             >
-              <option value="online">Online</option>
-              <option value="card">Card</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cash">Cash</option>
-              <option value="stripe">Stripe</option>
+              <option value="bank_transfer">📋 Manual Review (Bank Transfer/Cash)</option>
+              <option value="cash">📋 Manual Review (Cash Only)</option>
+              <option value="online">📋 Manual Review (Online Transfer)</option>
+              <option value="stripe">💳 Stripe (Instant Card Payment)</option>
             </select>
           </div>
+
           <div className="form-group">
-            <label className="form-label">Description (Optional)</label>
+            <label className="form-label">Description/Membership Type</label>
             <input
               type="text"
               className="form-input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description"
+              placeholder="e.g., Monthly subscription renewal"
             />
           </div>
-          <button type="submit" className="btn-primary" disabled={submitting || paymentMethod === "stripe" && (!amount || amount <= 0)}>
-            {submitting ? "Submitting..." : paymentMethod === "stripe" ? "Pay with Stripe" : "Submit Payment"}
-          </button>
+
+          {/* Manual Payment Section */}
+          {paymentMethod !== "stripe" && (
+            <div className="form-group">
+              <label className="form-label">📎 Upload Payment Proof (Required)</label>
+              <input
+                id="proofInput"
+                type="file"
+                className="form-input"
+                onChange={handleFileChange}
+                accept="image/*,.pdf"
+                required={paymentMethod !== "stripe"}
+                style={{
+                  padding: "12px",
+                  cursor: "pointer",
+                  backgroundColor: "rgba(118,255,3,0.05)",
+                  borderColor: "#76ff03"
+                }}
+              />
+              <small style={{ color: "#9e9e9e", marginTop: "4px", display: "block" }}>
+                Accepted: Images (JPG, PNG) or PDF. Max 5MB
+              </small>
+              {proofFile && (
+                <div style={{
+                  marginTop: "8px",
+                  padding: "8px 12px",
+                  background: "rgba(76,175,80,0.1)",
+                  border: "1px solid rgba(76,175,80,0.3)",
+                  borderRadius: "6px",
+                  color: "#81c784",
+                  fontSize: "0.9rem"
+                }}>
+                  ✓ {proofFile.name}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stripe Section */}
           {paymentMethod === "stripe" && amount && parseFloat(amount) > 0 && (
-            <div style={{ marginTop: "16px" }}>
-              <p style={{ color: "#bdbdbd", fontSize: "0.9rem" }}>
-                Or use Stripe directly:
-              </p>
+            <div style={{
+              background: "rgba(33,150,243,0.1)",
+              border: "1px solid rgba(33,150,243,0.3)",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "16px"
+            }}>
+              <div style={{ color: "#64b5f6", fontWeight: "600", marginBottom: "12px" }}>
+                <i className="fas fa-credit-card"></i> Stripe Secure Payment
+              </div>
               <StripePaymentWrapper>
                 <StripeCheckoutButton
                   userId={user?.id}
                   amount={parseFloat(amount) || 0}
                   description={description || "Gym membership payment"}
                   membershipType="membership"
-                  onSuccess={() => {
-                    setSuccess("Payment processed successfully!");
-                    setAmount("");
-                    setDescription("");
-                    loadPayments();
-                  }}
                   onError={(err) => setError(err)}
                   variant="primary"
                 />
               </StripePaymentWrapper>
+              <p style={{ color: "#9e9e9e", fontSize: "0.85rem", marginTop: "12px" }}>
+                💡 You will be redirected to Stripe. After successful payment, your transaction will be recorded automatically.
+              </p>
             </div>
+          )}
+
+          {paymentMethod !== "stripe" && (
+            <button type="submit" className="btn-primary" disabled={submitting || !proofFile}>
+              {submitting ? "Submitting..." : "Submit Payment for Review"}
+            </button>
           )}
         </form>
       </div>
 
+      {/* Payment History */}
       <div className="member-section">
-        <h2 className="section-title">Payment History</h2>
+        <h2 className="section-title">📜 Payment History</h2>
         {loading ? (
           <div className="loading">Loading payments...</div>
         ) : payments.length === 0 ? (
-          <p style={{ color: "#bdbdbd" }}>No payments found</p>
+          <p style={{ color: "#bdbdbd", textAlign: "center", padding: "20px" }}>
+            No payments found. Make your first payment above.
+          </p>
         ) : (
           <div className="table-container">
             <table className="table">
@@ -1177,27 +1350,72 @@ function PaymentsTab({ setError, setSuccess, reloadTrigger }) {
                   <th>Amount</th>
                   <th>Method</th>
                   <th>Status</th>
-                  <th>Description</th>
+                  <th>Review Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment._id}>
+                  <tr key={payment._id} style={{
+                    background: payment.reviewStatus === "pending_review" ? "rgba(255,152,0,0.05)" : "transparent"
+                  }}>
                     <td>{formatDate(payment.paymentDate)}</td>
-                    <td>Rs. {payment.amount.toFixed(2)}</td>
-                    <td>{payment.paymentMethod}</td>
+                    <td style={{ fontWeight: "600", color: "#76ff03" }}>Rs. {payment.amount.toFixed(2)}</td>
                     <td>
-                      <span className={`status-badge status-${payment.status}`}>
-                        {payment.status}
+                      <span style={{
+                        background: "rgba(255,87,34,0.1)",
+                        color: "#ff5722",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "0.8rem",
+                        fontWeight: "600"
+                      }}>
+                        {payment.paymentMethod}
                       </span>
                     </td>
-                    <td>{payment.description || "-"}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusBadgeColor(payment.status, payment.reviewStatus)}`}>
+                        {getStatusText(payment)}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: "0.85rem", color: "#bdbdbd" }}>
+                      {payment.reviewNotes ? (
+                        <div title={payment.reviewNotes}>
+                          {payment.reviewNotes.substring(0, 30)}
+                          {payment.reviewNotes.length > 30 ? "..." : ""}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+      </div>
+
+      {/* Status Legend */}
+      <div className="member-section">
+        <h3 style={{ color: "#fff", fontFamily: "'Oswald', sans-serif", marginBottom: "16px" }}>Status Guide</h3>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "12px"
+        }}>
+          <div style={{ padding: "12px", background: "rgba(255,152,0,0.1)", borderRadius: "6px", borderLeft: "3px solid #ffb74d" }}>
+            <div style={{ color: "#ffb74d", fontWeight: "600", fontSize: "0.9rem" }}>⏳ Pending Review</div>
+            <div style={{ color: "#bdbdbd", fontSize: "0.8rem", marginTop: "4px" }}>Awaiting admin verification</div>
+          </div>
+          <div style={{ padding: "12px", background: "rgba(76,175,80,0.1)", borderRadius: "6px", borderLeft: "3px solid #81c784" }}>
+            <div style={{ color: "#81c784", fontWeight: "600", fontSize: "0.9rem" }}>✅ Approved</div>
+            <div style={{ color: "#bdbdbd", fontSize: "0.8rem", marginTop: "4px" }}>Payment confirmed</div>
+          </div>
+          <div style={{ padding: "12px", background: "rgba(244,67,54,0.1)", borderRadius: "6px", borderLeft: "3px solid #e57373" }}>
+            <div style={{ color: "#e57373", fontWeight: "600", fontSize: "0.9rem" }}>❌ Rejected</div>
+            <div style={{ color: "#bdbdbd", fontSize: "0.8rem", marginTop: "4px" }}>Please contact admin</div>
+          </div>
+        </div>
       </div>
     </>
   );

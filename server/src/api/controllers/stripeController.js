@@ -84,75 +84,132 @@ exports.createPaymentIntent = async (req, res, next) => {
 exports.verifyPayment = async (req, res, next) => {
   try {
     const { sessionId, paymentIntentId } = req.body;
-    const userId = req.user.id; // Use authenticated user's ID for security
+    
+    // Get user ID from authenticated user
+    const userId = req.user?._id || req.user?.id;
     const repo = req.app.locals.repo;
+
+    console.log("[STRIPE VERIFY] User ID:", userId, "Session ID:", sessionId, "Intent ID:", paymentIntentId);
 
     if (!sessionId && !paymentIntentId) {
       return res.status(400).json({ message: "sessionId or paymentIntentId required" });
     }
 
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    if (!repo) {
+      console.error("[STRIPE VERIFY] Repository not available");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
     let paymentData = {
       userId,
       paymentMethod: "stripe",
-      status: "pending",
-      description: "Stripe payment"
+      status: "completed",
+      reviewStatus: "approved",  // Stripe payments are auto-approved
+      description: "Stripe payment",
+      paymentType: "membership_renewal",
+      amount: 0  // Initialize amount, will be updated below
     };
 
     // Verify with Stripe
     if (sessionId) {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.payment_status === "paid") {
-        paymentData.stripeSessionId = sessionId;
-        paymentData.stripePaymentIntentId = session.payment_intent;
-        paymentData.status = "completed";
-
-        // Retrieve payment intent to get amount and receipt
-        const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
-        // Convert from cents to dollars
-        paymentData.amount = paymentIntent.amount / 100;
+      try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        console.log("[STRIPE VERIFY] Session payment status:", session.payment_status);
         
-        if (paymentIntent.charges.data[0]) {
-          paymentData.receipt_url = paymentIntent.charges.data[0].receipt_url;
+        if (session.payment_status === "paid") {
+          paymentData.stripeSessionId = sessionId;
+          paymentData.stripePaymentIntentId = session.payment_intent;
+          paymentData.status = "completed";
+
+          // Retrieve payment intent to get amount and receipt
+          const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+          // Convert from cents to the original currency amount (Stripe stores in smallest unit)
+          paymentData.amount = parseInt(paymentIntent.amount) / 100;
+          
+          console.log("[STRIPE VERIFY] Amount retrieved:", paymentData.amount);
+
+          if (paymentIntent.charges?.data?.[0]) {
+            paymentData.receipt_url = paymentIntent.charges.data[0].receipt_url;
+          }
+        } else {
+          return res.status(400).json({ message: "Payment not completed on Stripe" });
         }
-      } else {
-        return res.status(400).json({ message: "Payment not completed on Stripe" });
+      } catch (stripeErr) {
+        console.error("[STRIPE VERIFY] Error retrieving session:", stripeErr.message);
+        return res.status(400).json({ message: "Failed to verify payment with Stripe: " + stripeErr.message });
       }
     } else if (paymentIntentId) {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      if (paymentIntent.status === "succeeded") {
-        paymentData.stripePaymentIntentId = paymentIntentId;
-        paymentData.status = "completed";
-        // Convert from cents to dollars
-        paymentData.amount = paymentIntent.amount / 100;
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        console.log("[STRIPE VERIFY] Intent status:", paymentIntent.status);
         
-        if (paymentIntent.charges.data[0]) {
-          paymentData.receipt_url = paymentIntent.charges.data[0].receipt_url;
+        if (paymentIntent.status === "succeeded") {
+          paymentData.stripePaymentIntentId = paymentIntentId;
+          paymentData.status = "completed";
+          // Convert from cents to the original currency amount
+          paymentData.amount = parseInt(paymentIntent.amount) / 100;
+          
+          console.log("[STRIPE VERIFY] Amount retrieved:", paymentData.amount);
+
+          if (paymentIntent.charges?.data?.[0]) {
+            paymentData.receipt_url = paymentIntent.charges.data[0].receipt_url;
+          }
+        } else {
+          return res.status(400).json({ message: "Payment not succeeded on Stripe" });
         }
-      } else {
-        return res.status(400).json({ message: "Payment not succeeded on Stripe" });
+      } catch (stripeErr) {
+        console.error("[STRIPE VERIFY] Error retrieving intent:", stripeErr.message);
+        return res.status(400).json({ message: "Failed to verify payment with Stripe: " + stripeErr.message });
       }
+    }
+
+    // Validate required fields
+    if (!paymentData.amount || paymentData.amount <= 0) {
+      console.error("[STRIPE VERIFY] Invalid amount:", paymentData.amount);
+      return res.status(400).json({ message: "Invalid payment amount retrieved from Stripe" });
     }
 
     // Check if payment already exists to avoid duplicates
-    const existingPayments = await repo.getPaymentByStripeId(sessionId, paymentIntentId);
+    try {
+      const existingPayments = await repo.getPaymentByStripeId(sessionId, paymentIntentId);
 
-    if (existingPayments) {
-      return res.json({
-        success: true,
-        message: "Payment already verified",
-        payment: existingPayments
-      });
+      if (existingPayments) {
+        console.log("[STRIPE VERIFY] Payment already exists, returning existing record");
+        return res.json({
+          success: true,
+          message: "Payment already verified",
+          payment: existingPayments
+        });
+      }
+    } catch (repoErr) {
+      console.error("[STRIPE VERIFY] Error checking for existing payment:", repoErr.message);
+      // Continue - if there's an error, we'll try to create a new one
     }
 
     // Save payment to database
-    const savedPayment = await repo.createPayment(paymentData);
-
-    res.json({
-      success: true,
-      message: "Payment verified and saved successfully",
-      payment: savedPayment
-    });
+    try {
+      console.log("[STRIPE VERIFY] Saving payment data:", paymentData);
+      const savedPayment = await repo.createPayment(paymentData);
+      
+      console.log("[STRIPE VERIFY] Payment saved successfully:", savedPayment._id);
+      
+      res.json({
+        success: true,
+        message: "Payment verified and saved successfully",
+        payment: savedPayment
+      });
+    } catch (saveErr) {
+      console.error("[STRIPE VERIFY] Error saving payment:", saveErr.message, saveErr);
+      return res.status(500).json({ 
+        message: "Failed to save payment to database: " + saveErr.message 
+      });
+    }
   } catch (err) {
+    console.error("[STRIPE VERIFY] Unexpected error:", err.message, err);
     next(err);
   }
 };
