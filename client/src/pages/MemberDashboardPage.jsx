@@ -19,6 +19,8 @@ const styles = `
     min-height: 100vh;
     background: ${DARK_BG};
     font-family: 'Roboto', sans-serif;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Navbar */
@@ -89,6 +91,25 @@ const styles = `
     display: flex;
     gap: 8px;
     overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ff5722 #1a1a1a;
+  }
+  .member-tabs-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  .member-tabs-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 10px;
+  }
+  .member-tabs-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #ff5722 0%, #76ff03 100%);
+    border-radius: 10px;
+    border: 2px solid #1a1a1a;
+    transition: all 0.3s ease;
+  }
+  .member-tabs-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #e64a19 0%, #66e600 100%);
+    box-shadow: 0 0 8px rgba(255, 87, 34, 0.4);
   }
   .tab-btn {
     background: transparent;
@@ -121,6 +142,8 @@ const styles = `
     max-width: 1400px;
     margin: 0 auto;
     padding: 32px 24px;
+    flex: 1;
+    width: 100%;
   }
 
   .loading {
@@ -552,6 +575,24 @@ const styles = `
       grid-template-columns: 1fr !important;
     }
   }
+
+  /* Footer */
+  .member-footer {
+    background: ${SECONDARY};
+    border-top: 1px solid #2a2a2a;
+    padding: 24px 0;
+    margin-top: 40px;
+    text-align: center;
+  }
+  .member-footer-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #bdbdbd;
+  }
+  .member-footer-eco {
+    color: #22c55e;
+    font-weight: 600;
+  }
 `;
 
 export default function MemberDashboardPage() {
@@ -762,6 +803,13 @@ export default function MemberDashboardPage() {
             </>
           )}
         </div>
+
+        {/* Footer */}
+        <footer className="member-footer">
+          <p className="member-footer-text">
+            Designed and developed By <span className="member-footer-eco">Eco</span>Mind Software Solutions
+          </p>
+        </footer>
       </div>
     </>
   );

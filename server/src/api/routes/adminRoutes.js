@@ -20,7 +20,8 @@ const {
   getActiveQRCode,
   deactivateQRCode,
   getQRCodeHistory,
-  getRenewalStats
+  getRenewalStats,
+  getExpiredMembers
 } = require("../controllers/adminController");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 
@@ -47,6 +48,9 @@ router.put("/payments/:paymentId/review", reviewPayment);
 
 // Renewal Statistics
 router.get("/stats/renewals", getRenewalStats);
+
+// Expired Members
+router.get("/expired-members", getExpiredMembers);
 
 // Attendance Management
 router.get("/attendance", getAllAttendance);

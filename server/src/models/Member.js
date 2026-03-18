@@ -6,7 +6,7 @@ const MemberSchema = new mongoose.Schema(
     memberCode: { type: String, required: true, unique: true, trim: true },
     phone: { type: String, default: "", trim: true },
     address: { type: String, default: "", trim: true },
-    plan: { type: String, enum: ["basic", "standard", "premium"], default: "basic", required: true },
+    plan: { type: String, enum: ["1-month", "3-months", "6-months", "1-year"], default: "1-month", required: true },
     status: { type: String, enum: ["active", "paused", "expired"], default: "active", required: true },
     joinDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true }

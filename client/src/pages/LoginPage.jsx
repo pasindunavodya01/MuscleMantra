@@ -253,6 +253,24 @@ const styles = `
       padding: 8px 10px;
     }
   }
+
+  /* Footer */
+  .login-footer {
+    background: #212121;
+    border-top: 1px solid #2a2a2a;
+    padding: 24px 0;
+    text-align: center;
+    position: relative;
+  }
+  .login-footer-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #bdbdbd;
+  }
+  .login-footer-eco {
+    color: #22c55e;
+    font-weight: 600;
+  }
 `;
 
 export default function Login() {
@@ -385,6 +403,13 @@ export default function Login() {
             </div>
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="login-footer">
+          <p className="login-footer-text">
+            Designed and developed By <span className="login-footer-eco">Eco</span>Mind Software Solutions
+          </p>
+        </footer>
       </div>
     </>
   );

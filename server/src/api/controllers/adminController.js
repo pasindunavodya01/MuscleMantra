@@ -313,6 +313,16 @@ async function getRenewalStats(req, res, next) {
   }
 }
 
+// Get Expired Members
+async function getExpiredMembers(req, res, next) {
+  try {
+    const expiredMembers = await req.app.locals.repo.getExpiredMembers();
+    return res.json({ expiredMembers });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = { 
   overview, 
   getAllUsers, 
@@ -334,6 +344,7 @@ module.exports = {
   getActiveQRCode,
   deactivateQRCode,
   getQRCodeHistory,
-  getRenewalStats
+  getRenewalStats,
+  getExpiredMembers
 };
 

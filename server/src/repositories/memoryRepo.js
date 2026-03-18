@@ -45,7 +45,7 @@ function createMemoryRepo() {
       membershipByUserId.set(id, {
         memberCode: u.member.memberCode,
         phone: u.member.phone || "",
-        plan: u.member.plan || "basic",
+        plan: u.member.plan || "1-month",
         status: u.member.status || "active",
         joinDate: u.member.joinDate,
         expiryDate: u.member.expiryDate
@@ -170,10 +170,10 @@ function createMemoryRepo() {
       membershipByUserId.set(userId, {
         memberCode: data.memberCode || uuidv4(),
         phone: data.phone || "",
-        plan: data.plan || "basic",
+        plan: data.plan || "1-month",
         status: data.status || "active",
         joinDate: data.joinDate || new Date(),
-        expiryDate: data.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        expiryDate: data.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       });
       return membershipByUserId.get(userId);
     },
@@ -182,6 +182,24 @@ function createMemoryRepo() {
       const updated = { ...existing, ...memberData };
       membershipByUserId.set(userId, updated);
       return updated;
+    },
+    async getExpiredMembers() {
+      const now = new Date();
+      const expiredMembers = [];
+      
+      for (const [userId, membership] of membershipByUserId) {
+        const expiryDate = new Date(membership.expiryDate);
+        if (expiryDate < now) {
+          const user = usersById.get(userId);
+          expiredMembers.push({
+            _id: userId,
+            userId: { name: user?.name, email: user?.email },
+            ...membership
+          });
+        }
+      }
+      
+      return expiredMembers.sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
     },
     // Payment Management
     async getAllPayments() {

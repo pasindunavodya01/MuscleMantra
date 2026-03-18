@@ -95,6 +95,15 @@ function createMongoRepo() {
     async getMemberByUserId(userId) {
       return await Member.findOne({ userId });
     },
+    async getExpiredMembers() {
+      const now = new Date();
+      const expiredMembers = await Member.find({ 
+        expiryDate: { $lt: now }
+      })
+        .populate("userId", "name email")
+        .sort({ expiryDate: -1 });
+      return expiredMembers;
+    },
     
     // Payment Management
     async getAllPayments() {

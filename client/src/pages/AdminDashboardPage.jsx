@@ -20,6 +20,7 @@ export default function AdminDashboardPage() {
   const [payments, setPayments] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [bmiRecords, setBmiRecords] = useState([]);
+  const [expiredMembers, setExpiredMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [announceModalOpen, setAnnounceModalOpen] = useState(false);
@@ -61,6 +62,9 @@ export default function AdminDashboardPage() {
       } else if (activeTab === "bmi") {
         const res = await api.get("/admin/bmi");
         setBmiRecords(res.data.bmi);
+      } else if (activeTab === "expired-members") {
+        const res = await api.get("/admin/expired-members");
+        setExpiredMembers(res.data.expiredMembers || []);
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to load data");
@@ -101,6 +105,7 @@ export default function AdminDashboardPage() {
               { id: "pay-review", icon: "fa-file-invoice", label: "Payment Review" },
               { id: "users", icon: "fa-users", label: "Users" },
               { id: "payments", icon: "fa-credit-card", label: "Payment History" },
+              { id: "expired-members", icon: "fa-times-circle", label: "Expired Members" },
               { id: "attendance", icon: "fa-calendar-check", label: "Attendance" },
               { id: "qrcode", icon: "fa-qrcode", label: "QR Code" },
               { id: "bmi", icon: "fa-weight", label: "BMI Tracking" },
@@ -128,6 +133,7 @@ export default function AdminDashboardPage() {
               {activeTab === "pay-review" && <PaymentReviewTab onRefresh={loadData} />}
               {activeTab === "users" && <UsersTab users={users} onRefresh={loadData} />}
               {activeTab === "payments" && <PaymentsTab payments={payments} users={users} onRefresh={loadData} />}
+              {activeTab === "expired-members" && <ExpiredMembersTab expiredMembers={expiredMembers} onRefresh={loadData} />}
               {activeTab === "attendance" && <AttendanceTab attendance={attendance} users={users} onRefresh={loadData} />}
               {activeTab === "qrcode" && <QRCodeTab onRefresh={loadData} />}
               {activeTab === "bmi" && <BMITab bmiRecords={bmiRecords} users={users} onRefresh={loadData} />}
@@ -146,6 +152,13 @@ export default function AdminDashboardPage() {
             setAnnounceModalOpen(false);
           }}
         />
+
+        {/* Footer */}
+        <footer className="admin-footer">
+          <p className="admin-footer-text">
+            Designed and developed By <span className="admin-footer-eco">Eco</span>Mind Software Solutions
+          </p>
+        </footer>
       </div>
     </>
   );
@@ -180,25 +193,47 @@ function StatCard({ title, value, icon, color }) {
   );
 }
 
+// Helper function to calculate expiry date based on plan
+function calculateExpiryDate(joinDate, plan) {
+  const date = new Date(joinDate);
+  const dayOfMonth = date.getDate();
+  
+  // Calculate expiry date based on plan duration
+  let monthsToAdd = 0;
+  if (plan === "1-month") monthsToAdd = 1;
+  else if (plan === "3-months") monthsToAdd = 3;
+  else if (plan === "6-months") monthsToAdd = 6;
+  else if (plan === "1-year") monthsToAdd = 12;
+  
+  const expiryDate = new Date(date);
+  expiryDate.setMonth(expiryDate.getMonth() + monthsToAdd);
+  
+  // Set to the same day of the month for expiry
+  expiryDate.setDate(Math.min(dayOfMonth, new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0).getDate()));
+  
+  return expiryDate.toISOString().split("T")[0];
+}
+
 // Users Tab Component
 function UsersTab({ users, onRefresh }) {
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({
     name: "", email: "", password: "", role: "member",
-    memberCode: "", phone: "", plan: "basic", status: "active",
+    memberCode: "", phone: "", plan: "1-month", status: "active",
     joinDate: new Date().toISOString().split("T")[0],
-    expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+    expiryDate: calculateExpiryDate(new Date().toISOString().split("T")[0], "1-month")
   });
 
   const handleCreate = () => {
     setEditUser(null);
+    const today = new Date().toISOString().split("T")[0];
     setFormData({
       name: "", email: "", password: "", role: "member",
       memberCode: `GM-${String(users.length + 1).padStart(4, "0")}`,
-      phone: "", plan: "basic", status: "active",
-      joinDate: new Date().toISOString().split("T")[0],
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      phone: "", plan: "1-month", status: "active",
+      joinDate: today,
+      expiryDate: calculateExpiryDate(today, "1-month")
     });
     setShowModal(true);
   };
@@ -384,14 +419,22 @@ function UserModal({ formData, setFormData, onSubmit, onClose, isEdit }) {
 
               <div className="admin-form-row">
                 <div className="admin-form-group">
-                  <label>Plan</label>
+                  <label>Plan Duration</label>
                   <select
                     value={formData.plan}
-                    onChange={e => setFormData({ ...formData, plan: e.target.value })}
+                    onChange={e => {
+                      const newPlan = e.target.value;
+                      setFormData({
+                        ...formData,
+                        plan: newPlan,
+                        expiryDate: calculateExpiryDate(formData.joinDate, newPlan)
+                      });
+                    }}
                   >
-                    <option value="basic">Basic</option>
-                    <option value="standard">Standard</option>
-                    <option value="premium">Premium</option>
+                    <option value="1-month">1 Month</option>
+                    <option value="3-months">3 Months</option>
+                    <option value="6-months">6 Months</option>
+                    <option value="1-year">1 Year</option>
                   </select>
                 </div>
                 <div className="admin-form-group">
@@ -413,17 +456,24 @@ function UserModal({ formData, setFormData, onSubmit, onClose, isEdit }) {
                   <input
                     type="date"
                     value={formData.joinDate}
-                    onChange={e => setFormData({ ...formData, joinDate: e.target.value })}
+                    onChange={e => {
+                      const newJoinDate = e.target.value;
+                      setFormData({
+                        ...formData,
+                        joinDate: newJoinDate,
+                        expiryDate: calculateExpiryDate(newJoinDate, formData.plan)
+                      });
+                    }}
                     required
                   />
                 </div>
                 <div className="admin-form-group">
-                  <label>Expiry Date</label>
+                  <label>Expiry Date (Auto-calculated)</label>
                   <input
                     type="date"
                     value={formData.expiryDate}
-                    onChange={e => setFormData({ ...formData, expiryDate: e.target.value })}
-                    required
+                    disabled
+                    style={{ background: "#0a0a0a", cursor: "not-allowed" }}
                   />
                 </div>
               </div>
@@ -1468,6 +1518,8 @@ function AdminStyles() {
         min-height: 100vh;
         background: ${DARK_BG};
         font-family: 'Roboto', sans-serif;
+        display: flex;
+        flex-direction: column;
       }
 
       /* Navbar */
@@ -1538,6 +1590,25 @@ function AdminStyles() {
         display: flex;
         gap: 8px;
         overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #ff5722 #1a1a1a;
+      }
+      .admin-tabs-container::-webkit-scrollbar {
+        height: 8px;
+      }
+      .admin-tabs-container::-webkit-scrollbar-track {
+        background: #1a1a1a;
+        border-radius: 10px;
+      }
+      .admin-tabs-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #ff5722 0%, #76ff03 100%);
+        border-radius: 10px;
+        border: 2px solid #1a1a1a;
+        transition: all 0.3s ease;
+      }
+      .admin-tabs-container::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #e64a19 0%, #66e600 100%);
+        box-shadow: 0 0 8px rgba(255, 87, 34, 0.4);
       }
       .admin-tab {
         background: transparent;
@@ -1570,6 +1641,8 @@ function AdminStyles() {
         max-width: 1400px;
         margin: 0 auto;
         padding: 32px 24px;
+        flex: 1;
+        width: 100%;
       }
       .admin-loading {
         text-align: center;
@@ -2257,7 +2330,136 @@ function AdminStyles() {
       .stripe-receipt-link:hover {
         color: #a5d6a7;
       }
+
+      /* Footer */
+      .admin-footer {
+        background: ${SECONDARY};
+        border-top: 1px solid #2a2a2a;
+        padding: 24px 0;
+        margin-top: 40px;
+        text-align: center;
+        position: relative;
+      }
+      .admin-footer-text {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #bdbdbd;
+      }
+      .admin-footer-eco {
+        color: #22c55e;
+        font-weight: 600;
+      }
     `}</style>
+  );
+}
+
+// Expired Members Tab Component
+function ExpiredMembersTab({ expiredMembers, onRefresh }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleRenewMembership = async (userId) => {
+    if (!confirm("Renew membership? Membership status will be set to 'active'.")) return;
+    try {
+      setLoading(true);
+      // Call API to renew membership (will be implemented in backend)
+      alert("Please update the member's plan and join date through the Users tab to renew membership.");
+      onRefresh();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to renew membership");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="admin-section">
+      <div className="admin-section-header">
+        <div>
+          <h2>❌ Expired Memberships</h2>
+          <p style={{ color: "#bdbdbd", marginTop: "8px", fontSize: "0.95rem" }}>
+            Members whose memberships have expired and need renewal
+          </p>
+        </div>
+        <button className="admin-btn-secondary" onClick={onRefresh} disabled={loading}>
+          <i className="fas fa-sync" /> Refresh
+        </button>
+      </div>
+
+      {expiredMembers.length === 0 ? (
+        <div style={{
+          textAlign: "center",
+          padding: "60px 20px",
+          background: "rgba(76,175,80,0.05)",
+          borderRadius: "12px",
+          color: "#81c784",
+          border: "1px solid rgba(76,175,80,0.3)"
+        }}>
+          <i className="fas fa-check-circle" style={{ fontSize: "2.5rem", marginBottom: "12px", display: "block" }}></i>
+          <strong>All members have active memberships!</strong>
+        </div>
+      ) : (
+        <div className="admin-table-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Member Code</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Plan</th>
+                <th>Expired Date</th>
+                <th>Days Expired</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expiredMembers.map(member => {
+                const expiryDate = new Date(member.expiryDate);
+                const today = new Date();
+                const daysExpired = Math.floor((today - expiryDate) / (1000 * 60 * 60 * 24));
+                
+                return (
+                  <tr key={member._id} style={{ borderLeft: "4px solid #f44336" }}>
+                    <td><strong>{member.memberCode}</strong></td>
+                    <td>{member.userId?.name || "N/A"}</td>
+                    <td>{member.phone || "-"}</td>
+                    <td>
+                      <span style={{ 
+                        background: "rgba(255,152,0,0.2)", 
+                        color: "#ffb74d", 
+                        padding: "4px 8px", 
+                        borderRadius: "4px",
+                        fontSize: "0.85rem"
+                      }}>
+                        {member.plan === "1-month" && "1 Month"}
+                        {member.plan === "3-months" && "3 Months"}
+                        {member.plan === "6-months" && "6 Months"}
+                        {member.plan === "1-year" && "1 Year"}
+                      </span>
+                    </td>
+                    <td style={{ color: "#f44336" }}>
+                      <strong>{expiryDate.toLocaleDateString()}</strong>
+                    </td>
+                    <td style={{ color: "#f44336" }}>
+                      <strong>{daysExpired} days</strong>
+                    </td>
+                    <td>
+                      <button 
+                        className="admin-btn-icon"
+                        onClick={() => handleRenewMembership(member.userId?._id)}
+                        title="Edit member to renew"
+                        style={{ cursor: "pointer" }}
+                      >
+                        <i className="fas fa-sync" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
