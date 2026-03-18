@@ -349,25 +349,205 @@ const styles = `
 
   /* Responsive */
   @media (max-width: 768px) {
-    .member-tabs-container {
+    .member-navbar {
+      height: 60px;
+    }
+    .member-nav-container {
       padding: 0 12px;
     }
+    .member-logo {
+      font-size: 1.2rem;
+    }
+    .member-nav-right {
+      gap: 8px;
+    }
+    .member-user-name {
+      display: none;
+    }
+    .btn-logout {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+    .member-tabs-container {
+      padding: 0 12px;
+      gap: 0;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+    }
     .tab-btn {
-      padding: 12px 16px;
-      font-size: 0.85rem;
+      padding: 12px 12px;
+      font-size: 0.8rem;
+      min-width: 80px;
+    }
+    .tab-btn i {
+      margin-right: 4px;
     }
     .member-content {
-      padding: 20px 12px;
+      padding: 16px 12px;
+    }
+    .member-section {
+      padding: 16px;
+    }
+    .section-title {
+      font-size: 1.3rem;
+      margin-bottom: 16px;
     }
     .membership-grid {
       grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .info-card {
+      padding: 16px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-label {
+      font-size: 0.8rem;
+    }
+    .form-input {
+      padding: 10px;
+      font-size: 14px;
+    }
+    .btn-primary {
+      padding: 10px 16px;
+      min-height: 44px;
+      font-size: 0.9rem;
     }
     .table-container {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      overflow-x: auto;
     }
     .table th,
     .table td {
       padding: 10px 8px;
+    }
+    .status-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+    }
+    .alert-error,
+    .alert-success {
+      padding: 12px;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .member-navbar {
+      height: 56px;
+    }
+    .member-logo {
+      font-size: 1rem;
+    }
+    .member-nav-container {
+      padding: 0 8px;
+    }
+    .member-highlight {
+      display: none;
+    }
+    .btn-logout {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+    .member-tabs {
+      top: 56px;
+    }
+    .member-tabs-container {
+      padding: 0 8px;
+      gap: 0;
+    }
+    .tab-btn {
+      padding: 10px 8px;
+      font-size: 0.7rem;
+      min-width: 60px;
+    }
+    .tab-btn i {
+      display: block;
+      margin-bottom: 2px;
+      margin-right: 0;
+      font-size: 0.9rem;
+    }
+    .member-content {
+      padding: 12px 8px;
+    }
+    .member-section {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
+    .membership-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .info-card {
+      padding: 12px;
+    }
+    .info-label {
+      font-size: 0.7rem;
+    }
+    .info-value {
+      font-size: 1.3rem;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-label {
+      font-size: 0.75rem;
+    }
+    .form-input {
+      padding: 8px;
+      font-size: 13px;
+    }
+    .form-textarea {
+      padding: 8px;
+      font-size: 13px;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 10px 12px;
+      min-height: 44px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    .table {
+      font-size: 0.75rem;
+    }
+    .table th,
+    .table td {
+      padding: 8px 6px;
+    }
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .status-badge {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+    }
+    .alert-error,
+    .alert-success {
+      padding: 10px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .loading {
+      padding: 40px 12px;
+      font-size: 1rem;
+    }
+    .qr-scanner {
+      padding: 30px 12px;
+    }
+    .qr-input {
+      max-width: 100%;
+    }
+    /* Achievement Badge Responsive */
+    .achievement-grid {
+      grid-template-columns: 1fr !important;
     }
   }
 `;

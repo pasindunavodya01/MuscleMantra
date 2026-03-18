@@ -1914,28 +1914,267 @@ function AdminStyles() {
 
       /* Responsive */
       @media (max-width: 768px) {
-        .admin-tabs-container {
+        .admin-navbar {
+          height: 60px;
+        }
+        .admin-nav-container {
           padding: 0 12px;
         }
+        .admin-logo {
+          font-size: 1.2rem;
+        }
+        .admin-nav-right {
+          gap: 8px;
+        }
+        .admin-user-name {
+          display: none;
+        }
+        .admin-btn-logout {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+        }
+        .admin-tabs {
+          top: 60px;
+        }
+        .admin-tabs-container {
+          padding: 0 12px;
+          gap: 0;
+          overflow-x: auto;
+          scroll-behavior: smooth;
+        }
         .admin-tab {
-          padding: 12px 16px;
-          font-size: 0.85rem;
+          padding: 12px 12px;
+          font-size: 0.8rem;
+          min-width: 70px;
+        }
+        .admin-tab i {
+          margin-right: 4px;
         }
         .admin-content {
-          padding: 20px 12px;
+          padding: 16px 12px;
+        }
+        .admin-section {
+          padding: 16px;
+          border-radius: 10px;
+          margin-bottom: 16px;
+        }
+        .admin-section-header {
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+        }
+        .admin-section-header h2 {
+          font-size: 1.3rem;
         }
         .admin-stats-grid {
           grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .admin-stat-card {
+          padding: 16px;
+          gap: 12px;
+          flex-direction: column;
+          text-align: center;
+        }
+        .admin-stat-icon {
+          width: 50px;
+          height: 50px;
+          font-size: 1.5rem;
+        }
+        .admin-stat-value {
+          font-size: 1.5rem;
         }
         .admin-form-row {
           grid-template-columns: 1fr;
         }
+        .admin-form-group {
+          margin-bottom: 16px;
+        }
+        .admin-form-group label {
+          font-size: 0.8rem;
+        }
+        .admin-form-group input,
+        .admin-form-group select,
+        .admin-form-group textarea {
+          padding: 8px 10px;
+          font-size: 0.9rem;
+        }
         .admin-table-container {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
         }
         .admin-table th,
         .admin-table td {
-          padding: 10px 8px;
+          padding: 10px 6px;
+        }
+        .admin-badge {
+          font-size: 0.7rem;
+          padding: 3px 8px;
+        }
+        .admin-btn-primary,
+        .admin-btn-secondary {
+          padding: 8px 12px;
+          font-size: 0.85rem;
+          min-height: 40px;
+        }
+        .admin-alert-error,
+        .admin-alert-success {
+          padding: 12px;
+          font-size: 0.9rem;
+        }
+        .admin-modal {
+          max-height: calc(100vh - 40px);
+        }
+        .admin-modal-header {
+          padding: 16px;
+        }
+        .admin-modal-header h3 {
+          font-size: 1.3rem;
+        }
+        .admin-form {
+          padding: 16px;
+        }
+        .admin-form-actions {
+          gap: 8px;
+          margin-top: 16px;
+          padding-top: 16px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .admin-navbar {
+          height: 56px;
+        }
+        .admin-logo {
+          font-size: 1rem;
+        }
+        .admin-nav-container {
+          padding: 0 8px;
+        }
+        .admin-highlight {
+          display: none;
+        }
+        .admin-btn-logout {
+          padding: 4px 8px;
+          font-size: 0.7rem;
+        }
+        .admin-tabs {
+          top: 56px;
+        }
+        .admin-tabs-container {
+          padding: 0 8px;
+          gap: 0;
+        }
+        .admin-tab {
+          padding: 8px 6px;
+          font-size: 0.65rem;
+          min-width: 50px;
+        }
+        .admin-tab i {
+          display: block;
+          margin-bottom: 2px;
+          margin-right: 0;
+          font-size: 0.9rem;
+        }
+        .admin-content {
+          padding: 12px 8px;
+        }
+        .admin-section {
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+        }
+        .admin-section-header {
+          margin-bottom: 12px;
+        }
+        .admin-section-header h2 {
+          font-size: 1rem;
+        }
+        .admin-stats-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .admin-stat-card {
+          padding: 12px;
+          gap: 10px;
+        }
+        .admin-stat-icon {
+          width: 40px;
+          height: 40px;
+          font-size: 1.2rem;
+        }
+        .admin-stat-label {
+          font-size: 0.7rem;
+        }
+        .admin-stat-value {
+          font-size: 1.2rem;
+        }
+        .admin-form-row {
+          grid-template-columns: 1fr;
+        }
+        .admin-form-group {
+          margin-bottom: 12px;
+        }
+        .admin-form-group label {
+          font-size: 0.7rem;
+        }
+        .admin-form-group input,
+        .admin-form-group select,
+        .admin-form-group textarea {
+          padding: 6px 8px;
+          font-size: 12px;
+        }
+        .admin-table {
+          font-size: 0.7rem;
+        }
+        .admin-table th,
+        .admin-table td {
+          padding: 6px 4px;
+        }
+        .admin-badge {
+          font-size: 0.6rem;
+          padding: 2px 6px;
+        }
+        .admin-btn-primary,
+        .admin-btn-secondary {
+          width: 100%;
+          padding: 8px 12px;
+          font-size: 0.8rem;
+          min-height: 40px;
+          margin-bottom: 6px;
+        }
+        .admin-btn-icon {
+          padding: 4px 6px;
+          font-size: 0.8rem;
+        }
+        .admin-alert-error,
+        .admin-alert-success {
+          padding: 10px;
+          font-size: 0.8rem;
+          margin-bottom: 12px;
+        }
+        .admin-modal-overlay {
+          padding: 12px;
+        }
+        .admin-modal {
+          max-height: calc(100vh - 24px);
+          border-radius: 10px;
+        }
+        .admin-modal-header {
+          padding: 12px;
+        }
+        .admin-modal-header h3 {
+          font-size: 1.1rem;
+        }
+        .admin-form {
+          padding: 12px;
+        }
+        .admin-form-actions {
+          flex-direction: column-reverse;
+          gap: 6px;
+          margin-top: 12px;
+          padding-top: 12px;
+        }
+        .admin-form-actions button {
+          width: 100%;
         }
       }
 

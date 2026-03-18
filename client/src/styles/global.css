@@ -242,3 +242,121 @@ input:focus {
   font-size: 13px;
 }
 
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .container {
+    width: calc(100% - 16px);
+  }
+  
+  .main {
+    padding: 16px 0 48px;
+  }
+  
+  .header__inner {
+    height: 56px;
+    gap: 8px;
+    padding: 0 12px;
+  }
+  
+  .brand {
+    font-size: 14px;
+  }
+  
+  .hero {
+    padding: 16px;
+  }
+  
+  .hero h1 {
+    font-size: 28px;
+  }
+  
+  .nav__text {
+    font-size: 12px;
+  }
+  
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 40px;
+  }
+  
+  .stack {
+    gap: 12px;
+  }
+  
+  .row {
+    gap: 8px;
+  }
+  
+  .card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    width: calc(100% - 12px);
+  }
+  
+  .main {
+    padding: 12px 0 40px;
+  }
+  
+  .header__inner {
+    height: 52px;
+    gap: 4px;
+    padding: 0 8px;
+  }
+  
+  .brand {
+    font-size: 12px;
+  }
+  
+  .nav {
+    gap: 6px;
+  }
+  
+  .hero {
+    padding: 12px;
+  }
+  
+  .hero h1 {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+  
+  .btn--primary {
+    min-height: 44px;
+  }
+  
+  .card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+  
+  input {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  
+  .alert {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .stat {
+    font-size: 24px;
+  }
+  
+  .authCard {
+    width: calc(100% - 16px);
+  }
+}
+
