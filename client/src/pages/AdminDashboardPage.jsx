@@ -1944,11 +1944,13 @@ function AdminStyles() {
         }
         .admin-tab {
           padding: 12px 12px;
-          font-size: 0.8rem;
+          font-size: 0;
           min-width: 70px;
         }
         .admin-tab i {
-          margin-right: 4px;
+          margin-right: 0;
+          font-size: 1rem;
+          display: block;
         }
         .admin-content {
           padding: 16px 12px;
@@ -2065,14 +2067,14 @@ function AdminStyles() {
         }
         .admin-tab {
           padding: 8px 6px;
-          font-size: 0.65rem;
+          font-size: 0;
           min-width: 50px;
         }
         .admin-tab i {
           display: block;
-          margin-bottom: 2px;
+          margin-bottom: 0;
           margin-right: 0;
-          font-size: 0.9rem;
+          font-size: 1rem;
         }
         .admin-content {
           padding: 12px 8px;

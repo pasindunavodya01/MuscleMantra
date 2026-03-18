@@ -376,11 +376,13 @@ const styles = `
     }
     .tab-btn {
       padding: 12px 12px;
-      font-size: 0.8rem;
-      min-width: 80px;
+      font-size: 0;
+      min-width: 70px;
     }
     .tab-btn i {
-      margin-right: 4px;
+      margin-right: 0;
+      font-size: 1rem;
+      display: block;
     }
     .member-content {
       padding: 16px 12px;
@@ -459,14 +461,14 @@ const styles = `
     }
     .tab-btn {
       padding: 10px 8px;
-      font-size: 0.7rem;
+      font-size: 0;
       min-width: 60px;
     }
     .tab-btn i {
       display: block;
-      margin-bottom: 2px;
+      margin-bottom: 0;
       margin-right: 0;
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
     .member-content {
       padding: 12px 8px;
