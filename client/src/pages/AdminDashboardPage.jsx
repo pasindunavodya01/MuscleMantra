@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import { StripePaymentWrapper, StripeCheckoutButton } from "../components/StripePayment";
+import { WhatsAppAnnouncementModal, WhatsAppButton } from "../components/WhatsAppButton";
+import { getAnnouncementLink, openWhatsApp } from "../utils/whatsapp";
 
 const PRIMARY = "#ff5722";
 const SECONDARY = "#212121";
@@ -20,6 +22,7 @@ export default function AdminDashboardPage() {
   const [bmiRecords, setBmiRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [announceModalOpen, setAnnounceModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -99,7 +102,8 @@ export default function AdminDashboardPage() {
               { id: "payments", icon: "fa-credit-card", label: "Payments" },
               { id: "attendance", icon: "fa-calendar-check", label: "Attendance" },
               { id: "qrcode", icon: "fa-qrcode", label: "QR Code" },
-              { id: "bmi", icon: "fa-weight", label: "BMI Tracking" }
+              { id: "bmi", icon: "fa-weight", label: "BMI Tracking" },
+              { id: "announce", icon: "fa-bullhorn", label: "WhatsApp Announce" }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -125,9 +129,21 @@ export default function AdminDashboardPage() {
               {activeTab === "attendance" && <AttendanceTab attendance={attendance} users={users} onRefresh={loadData} />}
               {activeTab === "qrcode" && <QRCodeTab onRefresh={loadData} />}
               {activeTab === "bmi" && <BMITab bmiRecords={bmiRecords} users={users} onRefresh={loadData} />}
+              {activeTab === "announce" && <AnnouncementTab users={users} onOpenModal={() => setAnnounceModalOpen(true)} />}
             </>
           )}
         </div>
+
+        {/* WhatsApp Announcement Modal */}
+        <WhatsAppAnnouncementModal
+          isOpen={announceModalOpen}
+          onClose={() => setAnnounceModalOpen(false)}
+          onSend={(message, recipients) => {
+            const link = getAnnouncementLink(message, recipients);
+            openWhatsApp(link);
+            setAnnounceModalOpen(false);
+          }}
+        />
       </div>
     </>
   );
@@ -1702,5 +1718,66 @@ function AdminStyles() {
         color: #a5d6a7;
       }
     `}</style>
+  );
+}
+
+// Announcement Tab Component
+function AnnouncementTab({ users, onOpenModal }) {
+  const memberNames = users
+    .filter(u => u.role === "member")
+    .map(u => u.name)
+    .join(", ") || "No members yet";
+
+  return (
+    <div className="admin-section">
+      <div className="admin-section-header">
+        <div>
+          <h2>📢 WhatsApp Announcements</h2>
+          <p style={{ color: "#bdbdbd", marginTop: "8px", fontSize: "0.95rem" }}>
+            Send important announcements to gym members via WhatsApp
+          </p>
+        </div>
+        <WhatsAppButton
+          label="Send Announcement"
+          onClick={onOpenModal}
+          showIcon={true}
+        />
+      </div>
+
+      <div style={{ marginTop: "32px" }}>
+        <div style={{
+          background: "#181818",
+          border: "1px solid #252525",
+          borderRadius: "12px",
+          padding: "24px",
+          marginBottom: "24px",
+        }}>
+          <h3 style={{ marginBottom: "16px", color: "#fff" }}>📋 Member List</h3>
+          <p style={{ color: "#bdbdbd", lineHeight: "1.6" }}>
+            <strong>Total Members:</strong> {users.filter(u => u.role === "member").length}
+          </p>
+          <p style={{ color: "#bdbdbd", marginTop: "12px", fontSize: "0.9rem", lineHeight: "1.6" }}>
+            <strong>Members:</strong> {memberNames}
+          </p>
+        </div>
+
+        <div style={{
+          background: "rgba(37,211,102,0.1)",
+          border: "1px solid rgba(37,211,102,0.3)",
+          borderRadius: "12px",
+          padding: "20px",
+          color: "#81c784",
+        }}>
+          <i className="fas fa-info-circle" style={{ marginRight: "8px" }} />
+          <strong style={{ color: "#fff" }}>How it works:</strong>
+          <ol style={{ marginLeft: "24px", marginTop: "8px", lineHeight: "1.8" }}>
+            <li>Click "Send Announcement" above</li>
+            <li>Write your message and specify recipients</li>
+            <li>Click "Send via WhatsApp"</li>
+            <li>Share the WhatsApp message with members individually or in group chats</li>
+          </ol>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { WhatsAppContactCard } from "../components/WhatsAppButton";
+import { getGymWhatsAppLink } from "../utils/whatsapp";
 
 const PRIMARY = "#ff5722";
 const SECONDARY = "#212121";
@@ -592,6 +594,13 @@ function ContactSection() {
                   <div className="cs-info-value">musclemantragym@gmail.com</div>
                 </div>
               </a>
+
+              {/* WhatsApp */}
+              <WhatsAppContactCard
+                link={getGymWhatsAppLink("Hi! I'd like to know more about Muscle Mantra Gym.")}
+                phone="+94 76 793 3556"
+                label="WhatsApp"
+              />
 
               {/* Hours */}
               <div className="cs-hours-card">

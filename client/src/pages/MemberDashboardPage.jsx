@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import { StripePaymentWrapper, StripeCheckoutButton } from "../components/StripePayment";
+import { WhatsAppButton } from "../components/WhatsAppButton";
+import { getMemberQueryLink } from "../utils/whatsapp";
 
 const PRIMARY = "#ff5722";
 const SECONDARY = "#212121";
@@ -460,6 +462,28 @@ export default function MemberDashboardPage() {
             </div>
             <div className="member-nav-right">
               <span className="member-user-name">{user?.name}</span>
+              <WhatsAppButton
+                message={`Hi! I'm ${user?.name}, a member of Muscle Mantra Gym. I have a question about my membership.`}
+                label=""
+                showIcon={true}
+                link={getMemberQueryLink(user?.name, "")}
+                style={{
+                  background: "#25D366",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  transition: "all 0.3s",
+                  fontFamily: "'Roboto', sans-serif",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
+                }}
+              />
               <button className="btn-logout" onClick={handleLogout}>
                 <i className="fas fa-sign-out-alt" /> Logout
               </button>
@@ -499,6 +523,12 @@ export default function MemberDashboardPage() {
               onClick={() => setActiveTab("bmi")}
             >
               <i className="fas fa-weight" /> BMI Tracker
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === "help" ? "active" : ""}`}
+              onClick={() => setActiveTab("help")}
+            >
+              <i className="fas fa-question-circle" /> Help & Support
             </button>
           </div>
         </div>
@@ -544,6 +574,9 @@ export default function MemberDashboardPage() {
                   setSuccess={setSuccess}
                 />
               )}
+              {activeTab === "help" && (
+                <HelpTab memberName={membership?.memberName || user?.name} />
+              )}
             </>
           )}
         </div>
@@ -553,18 +586,400 @@ export default function MemberDashboardPage() {
 }
 
 function OverviewTab({ membership }) {
+  const [attendance, setAttendance] = useState([]);
+  const [bmiRecords, setBmiRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [attendanceRes, bmiRes] = await Promise.all([
+        api.get("/member/attendance"),
+        api.get("/member/bmi")
+      ]);
+      
+      const attendanceData = attendanceRes.data.attendance || [];
+      const bmiData = bmiRes.data.bmi || [];
+      
+      setAttendance(attendanceData);
+      setBmiRecords(bmiData);
+      
+      // Calculate statistics
+      calculateStats(attendanceData, bmiData);
+    } catch (err) {
+      console.error("Failed to load statistics:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (attendanceData, bmiData) => {
+    // Weekly Attendance
+    const weeklyData = calculateWeeklyAttendance(attendanceData);
+    
+    // Attendance Streak
+    const streak = calculateAttendanceStreak(attendanceData);
+    
+    // BMI Stats
+    const currentBMI = bmiData.length > 0 ? bmiData[0] : null;
+    const previousBMI = bmiData.length > 1 ? bmiData[1] : null;
+    const bmiTrend = calculateBMITrend(currentBMI, previousBMI);
+    
+    // Average Session Duration
+    const avgDuration = calculateAverageSessionDuration(attendanceData);
+    
+    // Most Active Day
+    const mostActiveDay = calculateMostActiveDay(attendanceData);
+    
+    // Monthly Attendance
+    const monthlyCheckIns = calculateMonthlyAttendance(attendanceData);
+    
+    // Total hours this month
+    const monthlyHours = calculateMonthlyHours(attendanceData);
+
+    setStats({
+      weeklyCheckIns: weeklyData.checkIns,
+      weeklyDays: weeklyData.days,
+      streak,
+      currentBMI,
+      previousBMI,
+      bmiTrend,
+      avgDuration,
+      mostActiveDay,
+      monthlyCheckIns,
+      monthlyHours,
+      totalCheckIns: attendanceData.length
+    });
+  };
+
   return (
-    <div className="membership-grid">
-      <InfoCard title="Member Code" value={membership.memberCode} />
-      <InfoCard title="Plan" value={membership.plan} />
-      <InfoCard 
-        title="Status" 
-        value={<StatusBadge status={membership.status} />} 
-      />
-      <InfoCard title="Phone" value={membership.phone || "N/A"} />
-      <InfoCard title="Address" value={membership.address || "N/A"} />
-      <InfoCard title="Join Date" value={formatDate(membership.joinDate)} />
-      <InfoCard title="Expiry Date" value={formatDate(membership.expiryDate)} />
+    <>
+      {/* Membership Info Section */}
+      <div className="member-section">
+        <h2 className="section-title">📋 Membership Details</h2>
+        <div className="membership-grid">
+          <InfoCard title="Member Code" value={membership.memberCode} />
+          <InfoCard title="Plan" value={membership.plan.toUpperCase()} />
+          <InfoCard 
+            title="Status" 
+            value={<StatusBadge status={membership.status} />} 
+          />
+          <InfoCard title="Phone" value={membership.phone || "N/A"} />
+          <InfoCard title="Address" value={membership.address || "N/A"} />
+          <InfoCard title="Join Date" value={formatDate(membership.joinDate)} />
+          <InfoCard title="Expiry Date" value={formatDate(membership.expiryDate)} />
+        </div>
+      </div>
+
+      {/* Statistics Section */}
+      {loading ? (
+        <div className="loading">Loading your statistics...</div>
+      ) : stats ? (
+        <>
+          {/* Attendance Stats */}
+          <div className="member-section">
+            <h2 className="section-title">📊 Attendance Statistics</h2>
+            <div className="membership-grid">
+              <StatCard 
+                icon="📅"
+                title="This Week" 
+                value={stats.weeklyCheckIns}
+                subtitle={`${stats.weeklyDays} day${stats.weeklyDays !== 1 ? 's' : ''} attended`}
+              />
+              <StatCard 
+                icon="🔥"
+                title="Attendance Streak" 
+                value={`${stats.streak} day${stats.streak !== 1 ? 's' : ''}`}
+                subtitle="Keep it up! 💪"
+              />
+              <StatCard 
+                icon="⏱️"
+                title="Avg Session" 
+                value={stats.avgDuration || "N/A"}
+                subtitle="Duration per visit"
+              />
+              <StatCard 
+                icon="📈"
+                title="Monthly Check-ins" 
+                value={stats.monthlyCheckIns}
+                subtitle={`${stats.monthlyHours} hours total`}
+              />
+              <StatCard 
+                icon="⭐"
+                title="Most Active Day" 
+                value={stats.mostActiveDay || "N/A"}
+                subtitle="Your peak gym day"
+              />
+              <StatCard 
+                icon="🎯"
+                title="Total Check-ins" 
+                value={stats.totalCheckIns}
+                subtitle="All time visits"
+              />
+            </div>
+          </div>
+
+          {/* BMI Stats */}
+          {stats.currentBMI && (
+            <div className="member-section">
+              <h2 className="section-title">💪 BMI & Health Metrics</h2>
+              <div className="membership-grid">
+                <StatCard 
+                  icon="⚖️"
+                  title="Current BMI" 
+                  value={stats.currentBMI.bmi.toFixed(1)}
+                  subtitle={<span className={`bmi-category bmi-${stats.currentBMI.category}`}>
+                    {stats.currentBMI.category}
+                  </span>}
+                />
+                <StatCard 
+                  icon="📊"
+                  title="Weight" 
+                  value={`${stats.currentBMI.weight} kg`}
+                  subtitle={`Height: ${stats.currentBMI.height} cm`}
+                />
+                {stats.previousBMI && (
+                  <StatCard 
+                    icon={stats.bmiTrend.direction === 'down' ? '📉' : '📈'}
+                    title="BMI Trend" 
+                    value={stats.bmiTrend.change}
+                    subtitle={stats.bmiTrend.message}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Achievement Badges */}
+          <div className="member-section">
+            <h2 className="section-title">🏆 Achievements</h2>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "16px"
+            }}>
+              {stats.streak >= 7 && (
+                <AchievementBadge 
+                  icon="🔥" 
+                  title="Week Warrior" 
+                  description="7+ day streak"
+                />
+              )}
+              {stats.streak >= 30 && (
+                <AchievementBadge 
+                  icon="💯" 
+                  title="Consistency King" 
+                  description="30+ day streak"
+                />
+              )}
+              {stats.weeklyCheckIns >= 5 && (
+                <AchievementBadge 
+                  icon="⭐" 
+                  title="Active Member" 
+                  description="5+ visits/week"
+                />
+              )}
+              {stats.monthlyHours >= 20 && (
+                <AchievementBadge 
+                  icon="💪" 
+                  title="Gym Enthusiast" 
+                  description="20+ hours/month"
+                />
+              )}
+              {stats.totalCheckIns >= 100 && (
+                <AchievementBadge 
+                  icon="🎖️" 
+                  title="Century Club" 
+                  description="100+ total visits"
+                />
+              )}
+              {stats.currentBMI && stats.currentBMI.category === 'normal' && (
+                <AchievementBadge 
+                  icon="✅" 
+                  title="Health Star" 
+                  description="Healthy BMI achieved"
+                />
+              )}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+// Helper functions for statistics
+function calculateWeeklyAttendance(attendance) {
+  const today = new Date();
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const thisWeek = attendance.filter(record => {
+    const date = new Date(record.date);
+    return date >= weekAgo && date <= today;
+  });
+  
+  const uniqueDays = new Set(thisWeek.map(r => r.date));
+  
+  return {
+    checkIns: thisWeek.length,
+    days: uniqueDays.size
+  };
+}
+
+function calculateAttendanceStreak(attendance) {
+  if (!attendance.length) return 0;
+  
+  const sortedDates = attendance
+    .map(r => new Date(r.date))
+    .sort((a, b) => b - a);
+  
+  let streak = 0;
+  let currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < sortedDates.length; i++) {
+    const recordDate = new Date(sortedDates[i]);
+    recordDate.setHours(0, 0, 0, 0);
+    
+    const expectedDate = new Date(currentDate);
+    expectedDate.setDate(expectedDate.getDate() - i);
+    
+    if (recordDate.getTime() === expectedDate.getTime()) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+}
+
+function calculateBMITrend(current, previous) {
+  if (!current || !previous) {
+    return { change: "N/A", message: "Need 2+ records", direction: "neutral" };
+  }
+  
+  const change = (current.bmi - previous.bmi).toFixed(1);
+  const direction = change > 0 ? "up" : change < 0 ? "down" : "stable";
+  
+  return {
+    change: `${change > 0 ? '+' : ''}${change}`,
+    message: direction === "down" ? "Good progress! 👍" : direction === "up" ? "Keep pushing! 💪" : "Stable",
+    direction
+  };
+}
+
+function calculateAverageSessionDuration(attendance) {
+  if (!attendance.length) return "N/A";
+  
+  const durations = attendance
+    .filter(r => r.checkOutTime)
+    .map(r => {
+      const checkIn = new Date(r.checkInTime);
+      const checkOut = new Date(r.checkOutTime);
+      return (checkOut - checkIn) / (1000 * 60); // minutes
+    });
+  
+  if (!durations.length) return "N/A";
+  
+  const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+  const hours = Math.floor(avg / 60);
+  const mins = Math.round(avg % 60);
+  
+  return `${hours}h ${mins}m`;
+}
+
+function calculateMostActiveDay(attendance) {
+  if (!attendance.length) return "N/A";
+  
+  const dayCount = {};
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  
+  attendance.forEach(record => {
+    const date = new Date(record.date);
+    const dayName = days[date.getDay()];
+    dayCount[dayName] = (dayCount[dayName] || 0) + 1;
+  });
+  
+  return Object.entries(dayCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+}
+
+function calculateMonthlyAttendance(attendance) {
+  const today = new Date();
+  const monthAgo = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  return attendance.filter(record => {
+    const date = new Date(record.date);
+    return date >= monthAgo && date <= today;
+  }).length;
+}
+
+function calculateMonthlyHours(attendance) {
+  const today = new Date();
+  const monthAgo = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  let totalMinutes = 0;
+  
+  attendance.forEach(record => {
+    const date = new Date(record.date);
+    if (date >= monthAgo && date <= today && record.checkOutTime) {
+      const checkIn = new Date(record.checkInTime);
+      const checkOut = new Date(record.checkOutTime);
+      totalMinutes += (checkOut - checkIn) / (1000 * 60);
+    }
+  });
+  
+  const hours = Math.round(totalMinutes / 60);
+  return hours;
+}
+
+function StatCard({ icon, title, value, subtitle }) {
+  return (
+    <div className="info-card">
+      <div style={{ fontSize: "1.8rem", marginBottom: "8px" }}>{icon}</div>
+      <div className="info-label">{title}</div>
+      <div className="info-value" style={{ fontSize: "1.3rem" }}>{value}</div>
+      {subtitle && (
+        <div style={{ 
+          color: "#9e9e9e", 
+          fontSize: "0.8rem", 
+          marginTop: "8px",
+          textTransform: "none"
+        }}>
+          {subtitle}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AchievementBadge({ icon, title, description }) {
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, rgba(255,87,34,0.15), rgba(118,255,3,0.1))",
+      border: "2px solid rgba(118,255,3,0.3)",
+      borderRadius: "12px",
+      padding: "20px",
+      textAlign: "center",
+      cursor: "pointer",
+      transition: "all 0.3s",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "scale(1.05)";
+      e.currentTarget.style.boxShadow = "0 8px 20px rgba(118,255,3,0.2)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "scale(1)";
+      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+    }}>
+      <div style={{ fontSize: "2rem", marginBottom: "8px" }}>{icon}</div>
+      <h4 style={{ color: "#76ff03", margin: "0 0 4px 0", fontWeight: "700" }}>{title}</h4>
+      <p style={{ color: "#9e9e9e", margin: "0", fontSize: "0.8rem" }}>{description}</p>
     </div>
   );
 }
@@ -1087,6 +1502,201 @@ function BMITab({ setError, setSuccess }) {
             </table>
           </div>
         )}
+      </div>
+    </>
+  );
+}
+
+function HelpTab({ memberName }) {
+  return (
+    <>
+      <div className="member-section">
+        <h2 className="section-title">💬 Help & Support</h2>
+        <p style={{ color: "#bdbdbd", marginBottom: "20px", lineHeight: "1.6" }}>
+          Have questions about your membership, payments, or need assistance? 
+          Connect with our gym team via WhatsApp for quick support.
+        </p>
+      </div>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: "24px",
+        marginBottom: "32px"
+      }}>
+        {/* WhatsApp Button Card */}
+        <div style={{
+          background: "#181818",
+          border: "1px solid #252525",
+          borderRadius: "12px",
+          padding: "24px",
+          transition: "all 0.3s"
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <i className="fab fa-whatsapp" style={{
+              fontSize: "3rem",
+              color: "#25D366",
+              marginBottom: "16px",
+              display: "block"
+            }} />
+            <h3 style={{
+              color: "#fff",
+              marginBottom: "12px",
+              fontFamily: "'Oswald', sans-serif"
+            }}>
+              Chat with Us
+            </h3>
+            <p style={{
+              color: "#bdbdbd",
+              marginBottom: "20px",
+              fontSize: "0.95rem"
+            }}>
+              Get instant responses on WhatsApp
+            </p>
+            <WhatsAppButton
+              label="Open WhatsApp"
+              link={getMemberQueryLink(memberName, "")}
+              onClick={() => {}}
+              showIcon={true}
+            />
+          </div>
+        </div>
+
+        {/* FAQ Card */}
+        <div style={{
+          background: "#181818",
+          border: "1px solid #252525",
+          borderRadius: "12px",
+          padding: "24px"
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <i className="fas fa-question-circle" style={{
+              fontSize: "3rem",
+              color: "#ff5722",
+              marginBottom: "16px",
+              display: "block"
+            }} />
+            <h3 style={{
+              color: "#fff",
+              marginBottom: "12px",
+              fontFamily: "'Oswald', sans-serif"
+            }}>
+              FAQ
+            </h3>
+            <p style={{
+              color: "#bdbdbd",
+              marginBottom: "20px",
+              fontSize: "0.95rem"
+            }}>
+              Check common questions and answers
+            </p>
+            <button style={{
+              background: "#ff5722",
+              color: "#fff",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              transition: "all 0.3s",
+              fontFamily: "'Roboto', sans-serif"
+            }} onClick={() => alert("FAQ section coming soon!")}>
+              View FAQs
+            </button>
+          </div>
+        </div>
+
+        {/* Contact Card */}
+        <div style={{
+          background: "#181818",
+          border: "1px solid #252525",
+          borderRadius: "12px",
+          padding: "24px"
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <i className="fas fa-phone-alt" style={{
+              fontSize: "3rem",
+              color: "#4caf50",
+              marginBottom: "16px",
+              display: "block"
+            }} />
+            <h3 style={{
+              color: "#fff",
+              marginBottom: "12px",
+              fontFamily: "'Oswald', sans-serif"
+            }}>
+              Call Us
+            </h3>
+            <p style={{
+              color: "#bdbdbd",
+              marginBottom: "20px",
+              fontSize: "0.95rem"
+            }}>
+              Speak with our team directly
+            </p>
+            <a href="tel:+94767933556" style={{
+              background: "#4caf50",
+              color: "#fff",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              transition: "all 0.3s",
+              fontFamily: "'Roboto', sans-serif",
+              textDecoration: "none",
+              display: "inline-block"
+            }}>
+              +94 76 793 3556
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Common Questions */}
+      <div className="member-section">
+        <h2 className="section-title">Common Questions</h2>
+        <div style={{
+          display: "grid",
+          gap: "16px"
+        }}>
+          {[
+            { q: "How do I renew my membership?", a: "Contact us via WhatsApp or call us. Our team will help you with the renewal process and plan options." },
+            { q: "What payment methods are accepted?", a: "We accept cash, bank transfers, and online payments via Stripe card payments." },
+            { q: "Can I pause my membership?", a: "Yes, members can pause their membership for a specific period. Contact admin via WhatsApp for details." },
+            { q: "Do you offer training programs?", a: "Yes, our professional trainers offer personalized training programs. Inquire via WhatsApp for more details." }
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: "rgba(255,87,34,0.05)",
+              border: "1px solid rgba(255,87,34,0.2)",
+              borderRadius: "8px",
+              padding: "16px",
+              cursor: "pointer",
+              transition: "all 0.3s"
+            }}>
+              <h4 style={{ color: "#ff5722", marginBottom: "8px", fontWeight: "600" }}>
+                Q: {item.q}
+              </h4>
+              <p style={{ color: "#bdbdbd", fontSize: "0.9rem" }}>
+                A: {item.a}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Tips */}
+      <div className="member-section" style={{
+        background: "rgba(118,255,3,0.05)",
+        border: "1px solid rgba(118,255,3,0.3)"
+      }}>
+        <h2 className="section-title" style={{ color: "#76ff03" }}>💡 Quick Tips</h2>
+        <ul style={{ color: "#bdbdbd", lineHeight: "1.8", marginLeft: "20px" }}>
+          <li>Sync your attendance regularly by scanning the QR code at the gym</li>
+          <li>Track your BMI progress consistently to monitor your fitness journey</li>
+          <li>Update your contact information for better communication</li>
+          <li>Check your membership expiry date and renew in time to avoid interruptions</li>
+        </ul>
       </div>
     </>
   );
