@@ -830,6 +830,9 @@ export default function MuscleMantreGym() {
             <a href="https://wa.me/94767933556" target="_blank" rel="noopener noreferrer"><i className="fab fa-whatsapp" /></a>
             <a href="mailto:musclemantragym@gmail.com"><i className="fas fa-envelope" /></a>
           </div>
+           <p style={{ marginTop: "15px", fontSize: "0.9rem", color: "#bdbdbd" }}>
+            Designed and developed By <span style={{ color: "#22c55e", fontWeight: "600" }}>Eco</span>Mind Software Solutions
+          </p>
         </div>
       </footer>
     </>
