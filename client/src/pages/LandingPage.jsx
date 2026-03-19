@@ -92,16 +92,16 @@ const styles = `
     display: flex; flex-direction: column; justify-content: center;
     align-items: center; text-align: center; padding: 0 20px;
   }
-  .hero h1 { font-size: 3.5rem; margin-bottom: 20px; animation: fadeInUp 1s ease-out; color: #ffffff; opacity: 1; }
-  .hero p { font-size: 1.2rem; margin-bottom: 30px; color: #ddd; animation: fadeInUp 1s ease-out .5s both; opacity: 1; }
-  .rating-badge { margin-bottom: 30px; font-size: 1.1rem; color: var(--accent-green); animation: fadeInUp 1s ease-out .7s both; opacity: 1; }
+  .hero h1 { font-size: 3.5rem; margin-bottom: 20px; animation: fadeInUp 1s ease-out; }
+  .hero p { font-size: 1.2rem; margin-bottom: 30px; color: #ddd; animation: fadeInUp 1s ease-out .5s backwards; }
+  .rating-badge { margin-bottom: 30px; font-size: 1.1rem; color: var(--accent-green); animation: fadeInUp 1s ease-out .7s backwards; }
   .btn-main {
     display: inline-block; background: var(--primary); color: #fff;
     padding: 12px 28px; border-radius: 5px; font-weight: bold;
     text-transform: uppercase; cursor: pointer; border: none;
     box-shadow: 0 4px 6px rgba(0,0,0,.2); transition: all .3s;
-    animation: fadeInUp 1s ease-out .9s both; font-family: 'Roboto', sans-serif;
-    font-size: 1rem; text-decoration: none; opacity: 1;
+    animation: fadeInUp 1s ease-out .9s backwards; font-family: 'Roboto', sans-serif;
+    font-size: 1rem; text-decoration: none;
   }
   .btn-main:hover { background: #e64a19; transform: translateY(-3px); box-shadow: 0 6px 8px rgba(0,0,0,.4); }
 
@@ -219,253 +219,25 @@ const styles = `
 
   /* Responsive */
   @media (max-width: 768px) {
-    .navbar {
-      height: 60px;
-    }
-    .nav-container {
-      padding: 0 12px;
-    }
-    .logo {
-      font-size: 1.2rem;
-    }
-    .menu-toggle {
-      display: block;
-    }
+    .menu-toggle { display: block; }
     .nav-menu {
-      position: fixed;
-      left: -100%;
-      top: 60px;
-      flex-direction: column;
-      background: var(--secondary);
-      width: 100%;
-      text-align: center;
-      transition: 0.3s;
-      box-shadow: 0 10px 10px rgba(0,0,0,0.5);
+      position: fixed; left: -100%; top: 70px; flex-direction: column;
+      background: var(--secondary); width: 100%; text-align: center;
+      transition: .3s; box-shadow: 0 10px 10px rgba(0,0,0,.5);
       padding: 20px 0 40px;
     }
-    .nav-menu.open {
-      left: 0;
-    }
-    .nav-menu a {
-      font-size: 0.85rem;
-      padding: 10px 0;
-    }
-    .btn-nav {
-      margin-top: 10px;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-    }
-    .ticker-item {
-      font-size: 11px;
-      padding: 0 20px;
-    }
-    .hero {
-      height: calc(100vh - 60px - 37px);
-      padding: 20px;
-      min-height: 350px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .hero h1 {
-      font-size: 2.2rem;
-      margin-bottom: 16px;
-      font-weight: 700;
-      color: #ffffff;
-      opacity: 1;
-    }
-    .hero p {
-      font-size: 1.05rem;
-      margin-bottom: 20px;
-      line-height: 1.5;
-      color: #eeeeee;
-      opacity: 1;
-    }
-    .rating-badge {
-      margin-bottom: 16px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #76ff03;
-      opacity: 1;
-    }
-    .btn-main {
-      padding: 10px 20px;
-      font-size: 0.9rem;
-      min-height: 42px;
-      opacity: 1;
-    }
-    .gallery-grid {
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-      padding: 0 12px;
-    }
-    .gallery-item {
-      height: 150px;
-    }
-    .section {
-      padding: 40px 12px;
-    }
-    .section h2 {
-      font-size: 1.8rem;
-      margin-bottom: 24px;
-    }
-    .contact-wrapper {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      padding: 0 12px;
-    }
-    .contact-card {
-      padding: 16px;
-    }
-    .review-card {
-      flex: 0 0 100%;
-      max-width: 100%;
-      padding: 12px;
-      margin: 0 12px;
-    }
-    .map-container iframe {
-      height: 300px;
-    }
+    .nav-menu.open { left: 0; }
+    .hero h1 { font-size: 2rem; }
+    .gallery-grid { grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; }
+    .gallery-item { height: 180px; }
+    .contact-wrapper { grid-template-columns: 1fr; gap: 20px; }
+    .review-card { flex: 0 0 50%; max-width: 50%; }
+    .map-container iframe { height: 300px; }
   }
-  
   @media (max-width: 480px) {
-    .navbar {
-      height: 56px;
-    }
-    .nav-container {
-      padding: 0 8px;
-    }
-    .logo {
-      font-size: 1rem;
-    }
-    .logo.highlight {
-      display: none;
-    }
-    .nav-menu {
-      top: 56px;
-    }
-    .menu-toggle .bar {
-      width: 20px;
-      height: 2px;
-      margin: 4px 0;
-    }
-    .ticker-wrap {
-      padding: 8px 0;
-    }
-    .ticker-item {
-      font-size: 10px;
-      padding: 0 15px;
-    }
-    .hero {
-      height: calc(100vh - 56px - 37px);
-      padding: 16px;
-      min-height: 400px;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: center !important;
-      align-items: center !important;
-      text-align: center !important;
-      background: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.45)),
-        url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') center/cover no-repeat !important;
-    }
-    .hero h1 {
-      font-size: 1.8rem !important;
-      line-height: 1.3 !important;
-      margin-bottom: 14px !important;
-      font-weight: 700 !important;
-      color: #ffffff !important;
-      opacity: 1 !important;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
-      animation: none !important;
-    }
-    .hero p {
-      font-size: 0.95rem !important;
-      margin-bottom: 16px !important;
-      line-height: 1.5 !important;
-      color: #eeeeee !important;
-      opacity: 1 !important;
-      animation: none !important;
-    }
-    .rating-badge {
-      margin-bottom: 14px !important;
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      color: #76ff03 !important;
-      opacity: 1 !important;
-      animation: none !important;
-      display: block !important;
-    }
-    .btn-main {
-      padding: 10px 22px !important;
-      font-size: 0.9rem !important;
-      min-height: 40px !important;
-      margin-top: 8px !important;
-      opacity: 1 !important;
-      animation: none !important;
-    }
-    .section {
-      padding: 24px 12px;
-    }
-    .section h2 {
-      font-size: 1.4rem;
-      margin-bottom: 16px;
-    }
-    .section p {
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    .gallery-grid {
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 8px;
-      padding: 0 8px;
-    }
-    .gallery-item {
-      height: 120px;
-    }
-    .card {
-      padding: 12px;
-      text-align: center;
-    }
-    .card h3 {
-      font-size: 1rem;
-      margin-bottom: 8px;
-    }
-    .card-icon {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-    .contact-wrapper {
-      grid-template-columns: 1fr;
-      gap: 16px;
-      padding: 0 8px;
-    }
-    .contact-card {
-      padding: 12px;
-      border-radius: 8px;
-    }
-    .map-container iframe {
-      height: 250px;
-    }
-    .review-card {
-      flex: 0 0 100%;
-      max-width: 100%;
-      padding: 10px;
-      margin: 0 8px;
-      border-radius: 8px;
-    }
-    .review-text {
-      font-size: 0.85rem;
-      line-height: 1.4;
-      margin-bottom: 8px;
-    }
-    .review-author {
-      font-size: 0.75rem;
-    }
-    .btn-nav {
-      font-size: 0.75rem;
-      padding: 5px 10px;
-    }
+    .hero h1 { font-size: 1.6rem; line-height: 1.1; }
+    .gallery-item { height: 140px; }
+    .review-card { flex: 0 0 100%; max-width: 100%; }
   }
 `;
 
@@ -1058,9 +830,6 @@ export default function MuscleMantreGym() {
             <a href="https://wa.me/94767933556" target="_blank" rel="noopener noreferrer"><i className="fab fa-whatsapp" /></a>
             <a href="mailto:musclemantragym@gmail.com"><i className="fas fa-envelope" /></a>
           </div>
-          <p style={{ marginTop: "15px", fontSize: "0.9rem", color: "#bdbdbd" }}>
-            Designed and developed By <span style={{ color: "#22c55e", fontWeight: "600" }}>Eco</span>Mind Software Solutions
-          </p>
         </div>
       </footer>
     </>
