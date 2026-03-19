@@ -12,6 +12,8 @@ const styles = `
     font-family: 'Roboto', sans-serif;
   }
 
+  
+
   .not-found-content {
     text-align: center;
     max-width: 600px;
