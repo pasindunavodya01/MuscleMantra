@@ -238,9 +238,39 @@ function UsersTab({ users, onRefresh }) {
     setShowModal(true);
   };
 
-  const handleEdit = (user) => {
+  const handleEdit = async (user) => {
     setEditUser(user);
-    setFormData({ ...user, password: "" });
+    let updatedFormData = { ...user, password: "" };
+    
+    // If the user is a member, fetch member data
+    if (user.role === "member") {
+      try {
+        const res = await api.get(`/admin/users/${user.id}/member-data`);
+        const memberData = res.data.member;
+        if (memberData) {
+          // Format dates to YYYY-MM-DD for date input
+          const formatDateForInput = (date) => {
+            if (!date) return new Date().toISOString().split("T")[0];
+            const dateStr = typeof date === "string" ? date : date;
+            return dateStr.split("T")[0];
+          };
+          
+          updatedFormData = {
+            ...updatedFormData,
+            memberCode: memberData.memberCode || "",
+            phone: memberData.phone || "",
+            plan: memberData.plan || "1-month",
+            status: memberData.status || "active",
+            joinDate: formatDateForInput(memberData.joinDate),
+            expiryDate: formatDateForInput(memberData.expiryDate)
+          };
+        }
+      } catch (err) {
+        console.error("Failed to fetch member data:", err);
+      }
+    }
+    
+    setFormData(updatedFormData);
     setShowModal(true);
   };
 

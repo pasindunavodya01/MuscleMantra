@@ -5,6 +5,7 @@ const {
   createUser, 
   updateUser, 
   deleteUser,
+  getUserMemberData,
   getAllPayments,
   createPayment,
   getUserPayments,
@@ -35,6 +36,7 @@ router.get("/overview", overview);
 
 // User Management
 router.get("/users", getAllUsers);
+router.get("/users/:id/member-data", getUserMemberData);
 router.post("/users", createUser);
 router.put("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);

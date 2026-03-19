@@ -82,6 +82,19 @@ async function deleteUser(req, res, next) {
   }
 }
 
+async function getUserMemberData(req, res, next) {
+  try {
+    const { id } = req.params;
+    const member = await req.app.locals.repo.getMemberByUserId(id);
+    if (!member) {
+      return res.status(404).json({ message: "Member data not found" });
+    }
+    return res.json({ member });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Payment Management
 async function getAllPayments(req, res, next) {
   try {
@@ -329,6 +342,7 @@ module.exports = {
   createUser, 
   updateUser, 
   deleteUser,
+  getUserMemberData,
   getAllPayments,
   createPayment,
   getUserPayments,
